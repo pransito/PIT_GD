@@ -1,0 +1,152 @@
+---
+title: "Bilderrating_scatter.docx"
+output: word_document
+---
+##Rating Drifts across all Subjects
+```{r  fig.width=9, results='asis', fig.height=12, warning=FALSE, eval=TRUE, message=FALSE, tidy=TRUE, dev='png', echo=FALSE, fig.show='hold',}
+library(ggplot2)
+setwd('C:\\Users\\Milan.an\\Google Drive\\VPPG_Exchange\\Experimente\\PDT\\analysis\\scripts\\R\\plot_bilderratings\\')
+load('data_pdt.Rdat')
+
+##All subjects - Affective Ratings, facets for arousal, dominance and valence  
+
+  aPlot=ggplot(data_pdt_aff_long, aes(x=order, y=affRat));
+  aPlot=aPlot + facet_wrap(~affCat, ncol=1)
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=1, alpha=1/2) + xlab('Trial') + ylab('Affective Rating') + ggtitle(paste('All Subjects - Affective Ratings'));
+  aPlot=aPlot+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3, color='blue');
+  
+  plot(aPlot);
+
+##All subjects - Affective Sensitivity, facets for arousal, dominance and valence
+  aPlot=ggplot(data_pdt_aff_long, aes(x=order, y=Sensitivity));
+  aPlot=aPlot + facet_wrap(~affCat, ncol=1)
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=1, alpha=1/2) + xlab('Trial') + ylab('Affective Sensitivity') + ggtitle(paste('All Subjects - Affective Sensitivity (rev. Indifference)'));
+  aPlot=aPlot+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3, color='blue');
+
+  plot(aPlot);
+
+##All subjects - Affective Sensitivity, facets for arousal, dominance and valence and stimulus original categories
+  aPlot=ggplot(data_pdt_aff_long, aes(x=order, y=Sensitivity, color=imageGroup));
+  aPlot=aPlot + facet_wrap(~affCat*imageGroup, ncol=5)
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=1, alpha=1/2) + xlab('Trial') + ylab('Affective Sensitivity') + ggtitle(paste('All Subjects - Affective Sensitivity (rev. Indifference)'));
+  aPlot=aPlot+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3, color='blue');
+  
+  plot(aPlot);
+
+##All subjects - Affective Sensitivity, facets for arousal, dominance and valence and stimulus fitted categories
+  aPlot=ggplot(data_pdt_aff_long, aes(x=order, y=Sensitivity, color=fit_cluster));
+  aPlot=aPlot + facet_wrap(~affCat*fit_cluster, ncol=5)
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=1, alpha=1/2) + xlab('Trial') + ylab('Affective Sensitivity') + ggtitle(paste('All Subjects - Affective Sensitivity (rev. Indifference)'));
+  aPlot=aPlot+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3, color='blue');
+  ##why are there so many images without a fitted cluster (NA)?????
+  plot(aPlot);
+
+##All subjects - Arousal, color by stimulus original categories
+  indexExist=!is.na(data_pdt$arousal);
+  aPlot=ggplot(data_pdt[indexExist,], aes(x=order, y=arousal, color=imageGroup));
+  aPlot=aPlot + facet_wrap(~imageGroup, ncol=2)
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=1, alpha=1/2) + xlab('Trial') + ylab('Arousal') + ggtitle(paste('All Subjects - Arousal'));
+  aPlot=aPlot+labs(colour= 'Image Group')+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3, color='black');
+  
+  plot(aPlot);
+
+##All subjects - Dominance, color by stimulus original categories
+  indexExist=!is.na(data_pdt$valence);
+  aPlot=ggplot(data_pdt[indexExist,], aes(x=order, y=valence, color=imageGroup));
+  aPlot=aPlot + facet_wrap(~imageGroup, ncol=2)
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=1, alpha=1/2) + xlab('Trial') + ylab('Valence') + ggtitle(paste('All Subjects - valence'));
+  aPlot=aPlot+labs(colour= 'Image Group')+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3, color='black');
+  
+  plot(aPlot);
+
+##All subjects - Valence, color by stimulus original categories
+  indexExist=!is.na(data_pdt$dominance);
+  aPlot=ggplot(data_pdt[indexExist,], aes(x=order, y=dominance, color=imageGroup));
+  aPlot=aPlot + facet_wrap(~imageGroup, ncol=2)
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=1, alpha=1/2) + xlab('Trial') + ylab('Dominance') + ggtitle(paste('All Subjects - dominance'));
+  aPlot=aPlot+labs(colour= 'Image Group')+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3, color='black');
+  
+  plot(aPlot);
+
+
+```
+
+##Rating Drifts - Separate Plots for each Subject
+
+
+```{r  fig.width=8, results='asis', fig.height=12, warning=FALSE, eval=TRUE, message=FALSE, tidy=TRUE, dev='png', echo=FALSE, fig.show='hold',}
+library(ggplot2)
+setwd('C:\\Users\\Milan.an\\Google Drive\\VPPG_Exchange\\Experimente\\PDT\\analysis\\scripts\\R\\plot_bilderratings\\')
+load('data_pdt.Rdat')
+for (s in unique(data_pdt_aff_long$subject)){
+  
+  data_pdt_aff_long_curr= subset(data_pdt_aff_long, subject==s)
+  #Afective Ratings per participant
+  
+  aPlot=ggplot(data_pdt_aff_long_curr, aes(x=order,y=affRat,color=imageGroup));
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=3) + xlab('Trial') + ylab('Rating') + ggtitle(paste(s,'- Affective Rating'));
+  aPlot=aPlot+ facet_wrap(~affCat, ncol=1)
+  aPlot=aPlot+labs(colour= 'Image Group')+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3);
+  
+  plot(aPlot);
+  
+  #Afective Sensitivity per participant
+  aPlot=ggplot(data_pdt_aff_long_curr, aes(x=order,y=Sensitivity, color=imageGroup));
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=3) + xlab('Trial') + ylab('Sensitivity') + ggtitle(paste(s,'- Affective Sensitivity (rev. Indifference)'));
+  aPlot=aPlot+ facet_wrap(~affCat, ncol=1)
+  aPlot=aPlot+labs(colour= 'Image Group')+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3);
+  
+  plot(aPlot);
+ }
+  
+```
+
+##Rating Drifts - Separate Plots for each rating for each Subject 
+
+```{r  fig.width=8, results='asis', fig.height=5.5, warning=FALSE, eval=TRUE, message=FALSE, tidy=TRUE, dev='png', echo=FALSE, fig.show='hold',}
+library(ggplot2)
+setwd('C:\\Users\\Milan.an\\Google Drive\\VPPG_Exchange\\Experimente\\PDT\\analysis\\scripts\\R\\plot_bilderratings\\')
+load('data_pdt.Rdat')
+for (s in unique(data_pdt$subject)){
+  
+  
+  indexExist=!is.na(data_pdt$arousal[data_pdt$subject==s]);
+  aPlot=ggplot(data_pdt[data_pdt$subject==s,][indexExist,], aes(x=data_pdt$order[data_pdt$subject==s][indexExist],
+                                                          y=data_pdt$arousal[data_pdt$subject==s][indexExist], 
+                                                          color=data_pdt$imageGroup[data_pdt$subject==s][indexExist]));
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=3) + xlab('Trial') + ylab('Arousal') + ggtitle(paste(s,'- Arousal'));
+  aPlot=aPlot+labs(colour= 'Image Group')+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3);
+  
+  plot(aPlot);
+  
+  aPlot=ggplot(data_pdt[data_pdt$subject==s,][indexExist,], aes(x=data_pdt$order[data_pdt$subject==s][indexExist],
+                                                          y=data_pdt$dominance[data_pdt$subject==s][indexExist], 
+                                                          color=data_pdt$imageGroup[data_pdt$subject==s][indexExist]));
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=3) + xlab('Trial') + ylab('dominance') + ggtitle(paste(s,'- Dominance'));
+  aPlot=aPlot+labs(colour= 'Image Group')+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3);
+  
+  plot(aPlot);
+  
+  aPlot=ggplot(data_pdt[data_pdt$subject==s,][indexExist,], aes(x=data_pdt$order[data_pdt$subject==s][indexExist],
+                                                          y=data_pdt$valence[data_pdt$subject==s][indexExist], 
+                                                          color=data_pdt$imageGroup[data_pdt$subject==s][indexExist]));
+  aPlot=aPlot+layer(geom="point")+ geom_point(size=3) + xlab('Trial') + ylab('valence') + ggtitle(paste(s,'- Valence'));
+  aPlot=aPlot+labs(colour= 'Image Group')+ theme(plot.title = element_text(size = rel(1.5)));
+  aPlot=aPlot+geom_smooth(method=lm, se=FALSE, size=1.3);
+  
+  plot(aPlot);
+ }
+  
+```
+

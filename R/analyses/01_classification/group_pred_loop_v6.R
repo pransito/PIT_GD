@@ -70,9 +70,9 @@ agk.load.ifnot.install('compiler')
 
 # WHAT TO RUN =================================================================
 # just the behavioral parameter sets
-outer_cv_noaddfeat_noperm = 0 # with outer CV, getting generalization error
+outer_cv_noaddfeat_noperm = 1 # with outer CV, getting generalization error
 outer_cv_noaddfeat_wiperm = 0 # with permutation
-noout_cv_noaddfeat_noperm = 0 # no outer CV, get class on whole sample
+noout_cv_noaddfeat_noperm = 1 # no outer CV, get class on whole sample
 
 # behavior plus peripheral-physiological stuff
 outer_cv_wiaddfeat_noperm = 0 # adding physio
@@ -80,7 +80,7 @@ outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_wiaddfeat_noperm = 0 # adding physio
 
 # only peripheral-physiological
-outer_cv_addfeaton_noperm = 1  
+outer_cv_addfeaton_noperm = 0  
 outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_addfeaton_noperm = 0 
 
@@ -94,7 +94,7 @@ do_report_feat_only       = 0
 
 # PARAMETERS TO SET: General ==================================================
 # number of runs to get the CV results distribution, 1000 recommended
-runs                  = 15 # physio pred: 300 from home; current correct one for behav: 1010
+runs                  = 1012 # physio pred: 300 from home; current correct one for behav: 1010; 1011: for MRI but without control; 1012 with control vars.
 # set some seed to ensure reproducability
 des_seed              = 990 # 990 normally (combine 90 runs with 10 runs)
 # run the models (for param extraction in exp)
@@ -138,8 +138,8 @@ all_alphas            = F
 box_width             = 800
 # what predictors to control for
 if (which_study == 'MRT') {
-  #pred_to_control = c('smoking_ftdt','edu_hollingshead')
-  pred_to_control = c()
+  pred_to_control = c('smoking_ftdt','edu_hollingshead')
+  #pred_to_control = c()
 } else {
   pred_to_control = c('smoking_ftdt')
 }

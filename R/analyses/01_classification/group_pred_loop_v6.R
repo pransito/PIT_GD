@@ -70,9 +70,9 @@ agk.load.ifnot.install('compiler')
 
 # WHAT TO RUN =================================================================
 # just the behavioral parameter sets
-outer_cv_noaddfeat_noperm = 1 # with outer CV, getting generalization error
+outer_cv_noaddfeat_noperm = 0 # with outer CV, getting generalization error
 outer_cv_noaddfeat_wiperm = 0 # with permutation
-noout_cv_noaddfeat_noperm = 1 # no outer CV, get class on whole sample
+noout_cv_noaddfeat_noperm = 0 # no outer CV, get class on whole sample
 
 # behavior plus peripheral-physiological stuff
 outer_cv_wiaddfeat_noperm = 0 # adding physio

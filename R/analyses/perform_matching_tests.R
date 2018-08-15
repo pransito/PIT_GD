@@ -360,7 +360,7 @@ agk.domatch = function(which_studies,desired_n,dfs,cur_groups,cur_names_dom) {
   return(list(dfs = dfs, dropped_HCs_PGs = drop_lists))
 }
 
-agk.domatch.elim = function(which_studies,desired_n,dfs,cur_groups,cur_names_dom_narrowed) {
+agk.domatch.elim = function(which_studies,dfs,cur_groups,cur_names_dom_narrowed) {
   # DOES NOT WORK WELL DO NOT USE!!!
   # function that takes a dat_match after person-by person matching
   # will try to improve matching further by cutting out couples (HC,PG)
@@ -373,7 +373,8 @@ agk.domatch.elim = function(which_studies,desired_n,dfs,cur_groups,cur_names_dom
   drop_lists = list()
   for(ii in 1:length(which_studies)) {
     # loop over studies
-    cur_df = dfs[[ii]]
+    cur_df            = dfs[[ii]]
+    row.names(cur_df) = cur_df$VPPG
     
     # get the available subjects
     h_PG = sum(cur_df$HCPG == 'PG')
@@ -381,7 +382,7 @@ agk.domatch.elim = function(which_studies,desired_n,dfs,cur_groups,cur_names_dom
     
     # only if equal group size
     if (h_PG != h_HC) {
-      return(...)
+      stop('Unequal group sizes is not allowed in agk.domatch.elim')
     }
     
     # transform desired vars to numeric and scale
@@ -404,36 +405,37 @@ agk.domatch.elim = function(which_studies,desired_n,dfs,cur_groups,cur_names_dom
     # CAREFUL late singles are always in disadvantage because market of prospective partner is empty
     # that is why we order first: singles which have low distance in general come last; difficult ones first
     # using mean distance (works indeed better; mean distance in the end smaller than when doing easiest first)
+    # NEW: CUT THE THREE LINES ABOVE; SORTING BY MINIMUM: get the one who has the worst closest partner
     HC_kill    = c()
     PG_kill    = c()
     ct         = 0
     # check first if this is even needed
-    res        = agk.perform.matching.tests(dfs,cur_groups,cur_matching,path_mtc,0,cur_names)
-    score      = res[[ii]]$ok_or_checkneeded[res[[ii]]$cur_var %in% cur_names_dom_narrowed]
+    res        = agk.perform.matching.tests(dfs[ii],cur_groups[ii],cur_matching[ii],path_mtc,0,cur_names)
+    score      = res[[1]]$ok_or_checkneeded[res[[1]]$cur_var %in% cur_names_dom_narrowed]
     contn_elim = any(score == 'NEEDS_CHECK')
     
     while (contn_elim) {
       disp(paste('Cutting couple number',ct+1))
       cur_dist = distmat(as.matrix(cur_df_HC_vars), as.matrix(cur_df_PG_vars))
-      cur_dist = cur_dist[order(apply(cur_dist,MARGIN = 1,FUN = mean),decreasing = T),]
+      cur_dist = cur_dist[order(apply(cur_dist,MARGIN = 1,FUN = min),decreasing = T),] # sorting by the minimum; to see who has the worst closest partner
       singles  = rep(TRUE,length(cur_dist[,1]))
       couples  = repmat(NaN,length(cur_dist[,1]),3)
       for (kk in 1:length(cur_dist[,1])) {
-        couples[kk,1]    = kk
+        couples[kk,1]    = row.names(cur_dist)[kk]
         cur_ranks        = rank(cur_dist[kk,])
         cur_av_rnks      = cur_ranks[singles]
         min_rank         = min(cur_av_rnks)
         partner          = which(cur_ranks == min_rank)[1]
-        couples[kk,2]    = partner
+        couples[kk,2]    = names(partner)
         couples[kk,3]    = cur_dist[kk,partner]
         singles[partner] = FALSE
       }
       
       # which one is the most distanced couple?
       ct = ct + 1
-      couple_to_kill = which(max(couples[,3]) == couples[,3])
-      HC_kill[ct]    = rownames(cur_dist)[couples[couple_to_kill,1]]
-      PG_kill[ct]    = colnames(cur_dist)[couples[couple_to_kill,2]]
+      couple_to_kill = which(max(as.numeric(couples[,3])) == as.numeric(couples[,3]))
+      HC_kill[ct]    = couples[couple_to_kill,1]
+      PG_kill[ct]    = couples[couple_to_kill,2]
       
       # actually kill the couple
       # in case of size=1 for cur_names_dom_narrowed, we need to recover names and rownames
@@ -453,8 +455,8 @@ agk.domatch.elim = function(which_studies,desired_n,dfs,cur_groups,cur_names_dom
       # test improvement in matching
       cur_df     = cur_df[!row.names(cur_df) %in% c(HC_kill,PG_kill),]
       dfs[[ii]]  = cur_df
-      res        = agk.perform.matching.tests(dfs,cur_groups,cur_matching,path_mtc,0,cur_names)
-      score      = res[[ii]]$ok_or_checkneeded[res[[ii]]$cur_var %in% cur_names_dom_narrowed]
+      res        = agk.perform.matching.tests(dfs[ii],cur_groups[ii],cur_matching[ii],path_mtc,0,cur_names)
+      score      = res[[1]]$ok_or_checkneeded[res[[1]]$cur_var %in% cur_names_dom_narrowed]
       contn_elim = any(score == 'NEEDS_CHECK')
     }
     # saving the dropped PGs and HCs

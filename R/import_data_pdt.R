@@ -64,7 +64,7 @@ get_MRI_extr        = 0
 # how much aggregate (3 is from 12by12 to 4by4 because 12/3 == 4)
 cur_agg             = 3
 # matching criterion p-value (for matching experimental groups)
-m_crit              = 0.15
+m_crit              = 0.12
 # KFG cut off equal and above is PG (16 or 25)
 KFG_cutoff          = 16
 # for matching: which studies to do it on, and what are the group sizes?
@@ -73,7 +73,7 @@ which_studies       = c("MRT","POSTPILOT")
 desired_n           = list(c(32,32),c(30,30))
 # for matching (dom: do matching variables, do matching variables narrowed for elimination of couples)
 cur_names_dom          = c('edu_years','edu_years_voca','edu_hollingshead','income_personal','smoking_ftdt','Age','audit','dem_gender','handedness','unemployed')
-cur_names_dom_narrowed = c('Age')
+cur_names_dom_narrowed = c('edu_years','Age','smoking_ftdt','edu_years_voca')
 
 ## EXCLUSION/EXEMPTION LISTS ==================================================
 # subjects that are exempt of physio; have been checked; do not have physio
@@ -622,6 +622,14 @@ if (import_existing_imp == 0) {
   matching_res          = agk.domatch(which_studies,desired_n,dfs,cur_groups,cur_names_dom)
   dfs                   = matching_res$dfs
   dropped_subs_matching = matching_res$dropped_HCs_PGs
+  
+  # elimate further, in the MRI study at least, to improve matching [MRT: study 1]
+  message('I am cutting MRI sample further to improve matching on...')
+  message(cur_names_dom_narrowed)
+  elim_res                                       = agk.domatch.elim(which_studies[1],dfs[1],cur_groups[1],cur_names_dom_narrowed)
+  dfs[[1]]                                       = elim_res$dfs[[1]]
+  dropped_subs_matching[[1]]$dropped_HC_matching = c(dropped_subs_matching[[1]]$dropped_HC_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_HC_matching)
+  dropped_subs_matching[[1]]$dropped_PG_matching = c(dropped_subs_matching[[1]]$dropped_PG_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_PG_matching)
   
   # reporting who was dropped due to matching
   for (ii in 1:length(which_studies)) {

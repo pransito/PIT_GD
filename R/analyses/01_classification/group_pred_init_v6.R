@@ -81,24 +81,27 @@ if (add_cr_pp  == 1 & which_study != 'MRT' || add_cr_ra  == 1) {
 
 # cleaning cr_agg_pp
 if (add_cr_pp_ma) {
-  cr_agg_pp_uncleaned = cr_agg_pp
   if (regress_out_covs) {
     if (!exists('cr_agg_pp_cleaned')) {
+      cr_agg_pp_uncleaned = cr_agg_pp
       disp('Cleaning cr_agg_pp from influence of unmatched covariates of no interest...')
       # test if subjects aligned
       stopifnot(length(dat_match$VPPG) == length(cr_agg_pp$subject))
       stopifnot(all(dat_match$VPPG == cr_agg_pp$subject))
       if (which_study == 'MRT') {
-        # cleaning
         preds = dat_match[c('smoking_ftdt','edu_years','edu_years_voca')]
-        cr_agg_pp_cleaned = as.data.frame(lapply(cr_agg_pp,FUN=agk.regress.out.c,rob=F,inf_crit='BIC',preds=preds,ro_info = 0))
-        cr_agg_pp         = cr_agg_pp_cleaned
       } else if (which_study == 'POSTPILOT_HCPG') {
-        # cleaning
         preds = dat_match[c('smoking_ftdt')]
-        cr_agg_pp_cleaned = as.data.frame(lapply(cr_agg_pp,FUN=agk.regress.out.c,rob=F,inf_crit='BIC',preds=preds,ro_info = 0))
-        cr_agg_pp         = cr_agg_pp_cleaned
       }
+      cr_agg_pp_cleaned    = lapply(cr_agg_pp,FUN=agk.regress.out.c,rob=F,inf_crit='BIC',preds=preds,ro_info = 1,des_degree = 1)
+      cur_fun_df           = function(x) {return(x$'res')}
+      cur_fun_ro           = function(x) {return(x$ro)}
+      cr_agg_pp_cleaned_df = as.data.frame(lapply(cr_agg_pp_cleaned,FUN=cur_fun_df))
+      cr_agg_pp_cleaned_ro = unlist(lapply(cr_agg_pp_cleaned,FUN=cur_fun_ro))
+      message('I cleaned so many variables of the cr_agg_pp data frame (0 not cleaned, 1 cleaned)')
+      print(table(cr_agg_pp_cleaned_ro))
+      cr_agg_pp_cleaned    = cr_agg_pp_cleaned_df
+      cr_agg_pp            = cr_agg_pp_cleaned
       disp('Done.')
     } else {
       cr_agg_pp = cr_agg_pp_cleaned
@@ -109,13 +112,18 @@ if (add_cr_pp_ma) {
 # reduce the fMRI data
 message('Take outn the dropping MRI variables out for publication!')
 if (reduce_fMRI_data & add_cr_pp_ma & which_study == 'MRT') {
-  cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxaccX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
+  if (fmri_extr == 'ngm' | fmri_extr == 'glc') {
+    cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxAccx',names(cr_agg_pp)),grep('PicGamOnxaccX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
+  } else if (fmri_extr == 'val') {
+    cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxvalx',names(cr_agg_pp)),grep('PicGamOnxvalX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
+  }
+  
   cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*DRN_8',names(cr_agg_pp_r),invert = T)]
   cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*AIns',names(cr_agg_pp_r),invert = T)]
   cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*PIns',names(cr_agg_pp_r),invert = T)]
   cr_agg_pp_r = cr_agg_pp_r[grep('_BA_',names(cr_agg_pp_r),invert = T)]
   cr_agg_pp_r = cr_agg_pp_r[grep('_ACgG',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_.OrG',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_.OrG',names(cr_agg_pp_r),invert = T)] # OFC none-gppi extracts
   cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_MFC',names(cr_agg_pp_r),invert = T)]
   cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_MSFG',names(cr_agg_pp_r),invert = T)]
   cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_MFC',names(cr_agg_pp_r),invert = T)]
@@ -130,6 +138,56 @@ if (reduce_fMRI_data & add_cr_pp_ma & which_study == 'MRT') {
 # clean out subject variable
 row.names(cr_agg_pp) = cr_agg_pp$subject
 cr_agg_pp$subject    = NULL
+
+# reduce set further by computing means
+cr_agg_pp_m = cr_agg_pp
+# SS cue reactivity variables; mean of L and R (so mean of two variables)
+all_cr_names   = names(cr_agg_pp_m)[grep('SS__grp01_',names(cr_agg_pp_m))]
+all_cr_names_L = all_cr_names[grep('_Left_',all_cr_names)]
+for (nn in 1:length(all_cr_names_L)) {
+  cur_name                     = all_cr_names_L[nn]
+  cur_R                        = gsub('_Left_','_Right_',cur_name)
+  cr_agg_pp_m[[cur_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R]]) /2 
+  cr_agg_pp_m[cur_R]           = NULL
+  # get the name we need to change
+  cur_ind                     = which(names(cr_agg_pp_m) == cur_name)
+  names(cr_agg_pp_m)[cur_ind] = gsub('_Left_','_LR_',names(cr_agg_pp_m[cur_name]))  
+}
+# SS gPPI PIT variables; mean of L and R (so mean of four variables)
+all_gppi_names         = names(cr_agg_pp_m)[grep('SS__PPI_',names(cr_agg_pp_m))]
+all_gppi_names_L       = all_gppi_names[grep('_PPI_L',all_gppi_names)]
+all_gppi_names_L_L_tar = all_gppi_names[grep('_ROI_L',all_gppi_names_L)]
+for (nn in 1:length(all_gppi_names_L_L_tar)) {
+  cur_name                     = all_gppi_names_L_L_tar[nn]             # left source left target
+  cur_R_source                 = gsub('_PPI_L_','_PPI_R_',cur_name)     # right source left target
+  cur_R_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_R_source) # right source right target
+  cur_L_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_name)     # left source right target
+  
+  # new name and calculation of mean
+  new_name                     = gsub('_PPI_L_','_PPI_LR_',cur_name)
+  new_name                     = gsub('_ROI_L_','_ROI_LR_',new_name)
+  cr_agg_pp_m[[new_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R_source]] + cr_agg_pp_m[[cur_R_source_L_tar]] + cr_agg_pp_m[[cur_L_source_L_tar]])/4 
+  
+  # delete unneeded variables
+  cr_agg_pp_m[cur_name]            = NULL
+  cr_agg_pp_m[cur_R_source]        = NULL
+  cr_agg_pp_m[cur_R_source_L_tar]  = NULL
+  cr_agg_pp_m[cur_L_source_L_tar]  = NULL
+}
+# some by hand
+if (fmri_extr == 'ngm' | fmri_extr == 'glc') {
+  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG)/2
+  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG)/2
+  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG)/2
+} else if (fmri_extr == 'val') {
+  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG)/2
+  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG)/2
+  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG)/2
+}
+
+# delete unneeded variables
+cr_agg_pp_m[names(cr_agg_pp_m)[grep('PPI_._',names(cr_agg_pp_m))]] = NULL
+cr_agg_pp = cr_agg_pp_m
 
 # set deviance measure
 cur_family = "binomial"

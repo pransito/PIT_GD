@@ -159,7 +159,7 @@ anova(moda_00,moda_01b)
 
 ## la overall #################################################################
 # stats glmer
-anova(modla_00,modla_01,modla_0g,modla_cg,modla_cgi)
+anova(modla_00,modla_01,modla_c0,modla_0g,modla_cg,modla_cgi)
 anova(modla_00nc,modla_01nc,modla_0gnc,modla_cg)
 
 # bootstrap

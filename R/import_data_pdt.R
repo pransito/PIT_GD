@@ -14,7 +14,7 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 ## PARAMETERS =================================================================
 ## parameters that may be set
 # use last exisiting import
-import_existing_imp = 1
+import_existing_imp = 0
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
 import_from_scratch = 0

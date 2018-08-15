@@ -79,8 +79,8 @@ outer_cv_wiaddfeat_noperm = 0 # adding physio
 outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_wiaddfeat_noperm = 0 # adding physio
 
-# only peripheral-physiological
-outer_cv_addfeaton_noperm = 0  
+# only peripheral-physiological / MRI
+outer_cv_addfeaton_noperm = 1  
 outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_addfeaton_noperm = 0 
 
@@ -94,7 +94,17 @@ do_report_feat_only       = 0
 
 # PARAMETERS TO SET: General ==================================================
 # number of runs to get the CV results distribution, 1000 recommended
-runs                  = 1012 # physio pred: 300 from home; current correct one for behav: 1010; 1011: for MRI but without control; 1012 with control vars.
+runs                  = 54 
+# physio pred: 300 from home; current correct one for behav: 1010; 1011: for MRI but without control; 1012 MRI with control vars.
+# 200 for MRI: is the classifier from v14; 201 is with cleaned variables BIC degree 2; 202 with cleaned AIC degree 2; 45 cleaning AIC, degree is 1 [rob always F]
+# 46 cleaning BIC, degree 1; 50: no cleaning
+# BUT I NEED NO CONTROL VARIABLES IN THE PREDICTORS
+# 50 is no cleaning and no control variabeles
+# 51 is cleaning with BIC and degree 1, no control variables
+# 52 is clenaing with AIC and degree 1, no control variables [yet to do] [ngm model on ss fmri level]
+# 53 is no cleaning, no control variables [val with categories on ss fmri level]
+# 54 is no cleaning, no control variables [glc on ss fmri level]
+
 # set some seed to ensure reproducability
 des_seed              = 990 # 990 normally (combine 90 runs with 10 runs)
 # run the models (for param extraction in exp)
@@ -138,8 +148,8 @@ all_alphas            = F
 box_width             = 800
 # what predictors to control for
 if (which_study == 'MRT') {
-  pred_to_control = c('smoking_ftdt','edu_hollingshead')
-  #pred_to_control = c()
+  #pred_to_control = c('smoking_ftdt','edu_hollingshead')
+  pred_to_control = c()
 } else {
   pred_to_control = c('smoking_ftdt')
 }
@@ -198,6 +208,8 @@ add_cr_ra_ma         = 0
 reduce_fMRI_data     = 1
 # plot and stats should be turned of for phys and rating params
 plot_and_stats       = 0
+# which extraction to use in fMRI
+fmri_extr            = 'glc'
 
 # PROCESS PREPS ===============================================================
 # do not make any settings here
@@ -541,7 +553,7 @@ if (noout_cv_addfeaton_noperm) {
   pb = winProgressBar(title = cur_title, min = 0,
                       max = runs, width = box_width)
   for(hh in 1:runs) {
-    source('group_pred_6_nooCV.R')
+    source('group_pred_6_wioCV.R')
     CVnoo_res_list_op[[hh]]  = CV_res
     
     # getting the complete final model's coefs

@@ -4,12 +4,27 @@
 # need to set and add_cr_pp
 
 # getting MRI ss and gppi extracts per subject ================================
-setwd(path_mep)
-cr_agg_pp_mep = read.table('ssgPPI_extr.csv',header = T,sep='\t')
-setwd(path_mes)
-cr_agg_pp_mes = read.table('ss_extr.csv',header = T,sep='\t')
-cr_agg_pp     = merge(cr_agg_pp_mes,cr_agg_pp_mep,by='subject')
-
+if (fmri_extr == 'ngm') {
+  setwd(path_mep)
+  cr_agg_pp_mep = read.table('ssgPPI_extr.csv',header = T,sep='\t')
+  setwd(path_mes)
+  cr_agg_pp_mes = read.table('ss_extr.csv',header = T,sep='\t')
+  cr_agg_pp     = merge(cr_agg_pp_mes,cr_agg_pp_mep,by='subject')
+} else if (fmri_extr == 'val') {
+  setwd(path_mep)
+  cr_agg_pp_mep = read.table('ssgPPI_extr_val.csv',header = T,sep='\t')
+  setwd(path_mes)
+  cr_agg_pp_mes = read.table('ss_extr_val.csv',header = T,sep='\t')
+  cr_agg_pp     = merge(cr_agg_pp_mes,cr_agg_pp_mep,by='subject')
+} else if (fmri_extr == 'glc') {
+  setwd(path_mep)
+  cr_agg_pp_mep = read.table('ssgPPI_extr_glc.csv',header = T,sep='\t')
+  setwd(path_mes)
+  cr_agg_pp_mes = read.table('ss_extr_glc.csv',header = T,sep='\t')
+  cr_agg_pp     = merge(cr_agg_pp_mes,cr_agg_pp_mep,by='subject')
+} else {
+  stop('Not implemented this extr fmri yet.')
+}
 
 # exclude areas who do not have info from all subs (rating/physio) ============
 all_subs      = unique(data_pdt$subject)

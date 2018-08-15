@@ -13,7 +13,7 @@ get.truth.4 = function() {
 }
 
 # set runs
-runs0 = 5000
+runs0 = 10000
 
 # under 0
 # pooled

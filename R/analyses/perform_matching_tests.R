@@ -420,6 +420,15 @@ agk.domatch.elim = function(which_studies,dfs,cur_groups,cur_names_dom_narrowed)
       cur_dist = cur_dist[order(apply(cur_dist,MARGIN = 1,FUN = min),decreasing = T),] # sorting by the minimum; to see who has the worst closest partner
       singles  = rep(TRUE,length(cur_dist[,1]))
       couples  = repmat(NaN,length(cur_dist[,1]),3)
+      
+      # for (kk in 1:length(cur_dist[,1])) {
+      #   # fill in current subject
+      #   couples[kk,1]    = row.names(cur_dist)[kk]
+      #   # fill in his best partner
+      #   couples[kk,2]    = colnames(cur_dist)[which.min(cur_dist[kk,])]
+      #   couples[kk,3]    = min(cur_dist[kk,])
+      # }
+      
       for (kk in 1:length(cur_dist[,1])) {
         couples[kk,1]    = row.names(cur_dist)[kk]
         cur_ranks        = rank(cur_dist[kk,])

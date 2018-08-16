@@ -94,7 +94,7 @@ do_report_feat_only       = 0
 
 # PARAMETERS TO SET: General ==================================================
 # number of runs to get the CV results distribution, 1000 recommended
-runs                  = 54 
+runs                  = 55 
 # physio pred: 300 from home; current correct one for behav: 1010; 1011: for MRI but without control; 1012 MRI with control vars.
 # 200 for MRI: is the classifier from v14; 201 is with cleaned variables BIC degree 2; 202 with cleaned AIC degree 2; 45 cleaning AIC, degree is 1 [rob always F]
 # 46 cleaning BIC, degree 1; 50: no cleaning
@@ -104,6 +104,7 @@ runs                  = 54
 # 52 is clenaing with AIC and degree 1, no control variables [yet to do] [ngm model on ss fmri level]
 # 53 is no cleaning, no control variables [val with categories on ss fmri level]
 # 54 is no cleaning, no control variables [glc on ss fmri level]
+# 55 is no cleaning, no control variables [glc on ss fmri level] [28 vs. 28 sample] [no means in fmri]
 
 # set some seed to ensure reproducability
 des_seed              = 990 # 990 normally (combine 90 runs with 10 runs)
@@ -115,7 +116,7 @@ est_models            = 1
 # in case of gaussian (metric), then 'mse' is used
 # 'class' is possible; or 'auc': careful auc needs a certain number of test samples
 # I programmed to use k = 5 for innerCV in case of auc
-type_measure_binomial = "auc"
+type_measure_binomial = "class"
 # should unit tests for balanced CVfolds be used in wioCV script?
 # should always be 1
 unit_test_strat_outCV = 1

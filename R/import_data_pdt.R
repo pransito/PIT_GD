@@ -14,66 +14,74 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 ## PARAMETERS =================================================================
 ## parameters that may be set
 # use last exisiting import
-import_existing_imp = 0
+import_existing_imp      = 0
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
-import_from_scratch = 0
+import_from_scratch      = 0
+# do any matching or non at all?
+do_matching              = 0
+# save the data_pdt? only off for debug
+do_save                  = 1
+# you may tunr off the export of the info_mri selection for debugging;
+# this is to write the Sjinfo.mat file on MATLAB side
+write_info_mri_selection = 0
 # scaling: currently centered-only (gain, loss)
-use_z               = 1 
+use_z                    = 1 
 # accept rject is not binary but 1 through 4 (metric)
-acc_num             = 0
+acc_num                  = 0
 # use absolute value of loss as predictor
-loss_abs            = 1
+loss_abs                 = 1
 # if set to 1 then people with too many missings will be dropped
-missing_check       = 1  
+missing_check            = 1  
 # if there are more than x% percent missings in response then drop-out
-missing_cutoff      = 0.8
+missing_cutoff           = 0.8
 # exclude if physio is missing?
 # CAREFUL: ONLY SO FAR WORKS IF DATA IS IMPORTED FROM SCRATCH
 # TODO!!!
-physio_excl         = 1
+physio_excl              = 1
 # which physio sum stat data to use (mean or max or median or...)
 # 'all' if you wanna put all summary stas in the CV (preferrable)
-physio_sum_fun      = 'all'
+physio_sum_fun           = 'all'
 # exclude according to TN-Liste? (should be always 1)
 # this is to exclude according to include variable
 # ADD Pretest cohort to TN-Liste, or get it from second sheet
 # excluding before adding rating; rating can bring in subs that were excluded
 # before or are not even in TN list
-tnl_excl            = 1
+tnl_excl                 = 1
 # exclude after adding ratings, (...)  to only have subs which have complete data
 # should be 1 if you need complete data, should be 0 if you are interested in ratings
 # and other data and not in all the complete behav and others data;
 # if 0 then check get_data_ratings_2.R for the TODO at the length check
-tnl_compl_excl      = 1
+tnl_compl_excl           = 1
 # what kind of pca to extract features? (if no kernel pca then normal pca)
-do_kernelpca        = 0
+do_kernelpca             = 0
 # write the matching tables (should always be 1)
-write_match_tables  = 1
+write_match_tables       = 1
 # should bootstrapping be used instead of normal t-test when checking for mathcing?
 # 1: yes; 2: TODO! permutation test will be used
-match_boot          = 2
+match_boot               = 2
 # get the MRI behav data as well? (only makes sense if the data is accessible)
-get_MRI_behav_data  = 1
+get_MRI_behav_data       = 1
 # estimate LA classical for MRI ss analysis? (using lmlist; quick!)
-get_LAcl_for_MRI    = 0
+get_LAcl_for_MRI         = 0
 # estimate LA Charpentier for MRI ss analysis? (CAREFUL: TAKES A WHILE)
-get_LAch_for_MRI    = 0
+get_LAch_for_MRI         = 0
 # get MRI BOLD extracts (to be done in matlab and moved to google drive)
-get_MRI_extr        = 0
+get_MRI_extr             = 0
 # how much aggregate (3 is from 12by12 to 4by4 because 12/3 == 4)
-cur_agg             = 3
+cur_agg                  = 3
 # matching criterion p-value (for matching experimental groups)
-m_crit              = 0.11
+m_crit                   = 0.15
 # KFG cut off equal and above is PG (16 or 25)
-KFG_cutoff          = 16
+KFG_cutoff               = 16
 # for matching: which studies to do it on, and what are the group sizes?
 # set desired_n to too high value if you do not want to do the matching for a particular study
-which_studies       = c("MRT","POSTPILOT")
-desired_n           = list(c(32,32),c(30,30))
+which_studies            = c("MRT","POSTPILOT")
+desired_n                = list(c(32,32),c(30,30))
 # for matching (dom: do matching variables, do matching variables narrowed for elimination of couples)
-cur_names_dom          = c('edu_years','edu_years_voca','edu_hollingshead','income_personal','smoking_ftdt','Age','audit','dem_gender','handedness','unemployed')
-cur_names_dom_narrowed = c('edu_years','Age','smoking_ftdt')
+# cut out: 'edu_years_voca','edu_hollingshead'
+cur_names_dom            = c('edu_years','income_personal','smoking_ftdt','Age','audit','dem_gender','handedness','unemployed')
+cur_names_dom_narrowed   = c('edu_years','Age','smoking_ftdt')
 
 ## EXCLUSION/EXEMPTION LISTS ==================================================
 # subjects that are exempt of physio; have been checked; do not have physio
@@ -618,37 +626,40 @@ if (import_existing_imp == 0) {
   # interpolating using mean per group
   dfs = agk.interpolating.dat_match(dfs,cur_groups,cur_names,cur_gr_levs)
   
-  # do matching: find best matching subject for each subject
-  matching_res          = agk.domatch(which_studies,desired_n,dfs,cur_groups,cur_names_dom)
-  dfs                   = matching_res$dfs
-  dropped_subs_matching = matching_res$dropped_HCs_PGs
-  
-  # elimate further, in the MRI study at least, to improve matching [MRT: study 1]
-  message('I am cutting MRI sample further to improve matching on...')
-  message(paste(cur_names_dom_narrowed,collapse = ' '))
-  elim_res                                       = agk.domatch.elim(which_studies[1],dfs[1],cur_groups[1],cur_names_dom_narrowed)
-  dfs[[1]]                                       = elim_res$dfs[[1]]
-  dropped_subs_matching[[1]]$dropped_HC_matching = c(dropped_subs_matching[[1]]$dropped_HC_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_HC_matching)
-  dropped_subs_matching[[1]]$dropped_PG_matching = c(dropped_subs_matching[[1]]$dropped_PG_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_PG_matching)
-
+  if (do_matching) {
+    # do matching: find best matching subject for each subject
+    matching_res          = agk.domatch(which_studies,desired_n,dfs,cur_groups,cur_names_dom)
+    dfs                   = matching_res$dfs
+    dropped_subs_matching = matching_res$dropped_HCs_PGs
+    
+    # elimate further, in the MRI study at least, to improve matching [MRT: study 1]
+    message('I am cutting MRI sample further to improve matching on...')
+    message(paste(cur_names_dom_narrowed,collapse = ' '))
+    elim_res                                       = agk.domatch.elim(which_studies[1],dfs[1],cur_groups[1],cur_names_dom_narrowed)
+    dfs[[1]]                                       = elim_res$dfs[[1]]
+    dropped_subs_matching[[1]]$dropped_HC_matching = c(dropped_subs_matching[[1]]$dropped_HC_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_HC_matching)
+    dropped_subs_matching[[1]]$dropped_PG_matching = c(dropped_subs_matching[[1]]$dropped_PG_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_PG_matching)
+    
+    
+    # reporting who was dropped due to matching
+    for (ii in 1:length(which_studies)) {
+      cur_text = paste("In study", which_studies[ii],"these subjects were dropped to improve matching:\n",
+                       "HC:",paste(dropped_subs_matching[[ii]]$dropped_HC_matching,collapse = " "),"\n",
+                       "PG:",paste(dropped_subs_matching[[ii]]$dropped_PG_matching,collapse = " "))
+      warning(cur_text)
+    }
+    
+    # align data_pdt and dat_match after do matching
+    warning(paste0("dat_match and data_pdt subjects are aligned after dropping subjects due to matching.\n",
+                   "But dat_match has no interpolation of missing data as was used for printing demography tables."))
+    for (ii in 1:length(which_studies)) {
+      data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
+      data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
+      dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
+      dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
+    }
+  }
  
-  # reporting who was dropped due to matching
-  for (ii in 1:length(which_studies)) {
-    cur_text = paste("In study", which_studies[ii],"these subjects were dropped to improve matching:\n",
-                     "HC:",paste(dropped_subs_matching[[ii]]$dropped_HC_matching,collapse = " "),"\n",
-                     "PG:",paste(dropped_subs_matching[[ii]]$dropped_PG_matching,collapse = " "))
-    warning(cur_text)
-  }
-  
-  # align data_pdt and dat_match after do matching
-  warning(paste0("dat_match and data_pdt subjects are aligned after dropping subjects due to matching.\n",
-                 "But dat_match has no interpolation of missing data as was used for printing demography tables."))
-  for (ii in 1:length(which_studies)) {
-    data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
-    data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
-    dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
-    dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
-  }
   
   # MRI cohort: drop due to Age, edu years, lefthandedness
   # dat_match_MRT     = subset(dat_match,Cohort == 'MRT')
@@ -733,43 +744,50 @@ if (import_existing_imp == 0) {
   # 
   # variables_explained_pdt = data.frame(data_pdt_vars,data_pdt_vars_explanations)
   
-  # get an MRI Sjinfo for SPM
-  cur_MRI        = aggregate(data_pdt[c("HCPG","Cohort")],by=list(data_pdt$subject),FUN=first)
-  cur_MRI        = subset(cur_MRI, Cohort == "MRT")
-  cur_MRI$Cohort = NULL
-  names(cur_MRI) = c("subject","group") 
-  cur_MRI$group  = ifelse(cur_MRI$group == "PG",1,0)
-  # add the covariates info
-  dat_match$edu_years_sum = dat_match$edu_years + dat_match$edu_years_voca 
-  cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years_sum','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
-  write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+  if (write_info_mri_selection) {
+    # get an MRI Sjinfo for SPM
+    cur_MRI        = aggregate(data_pdt[c("HCPG","Cohort")],by=list(data_pdt$subject),FUN=first)
+    cur_MRI        = subset(cur_MRI, Cohort == "MRT")
+    cur_MRI$Cohort = NULL
+    names(cur_MRI) = c("subject","group") 
+    cur_MRI$group  = ifelse(cur_MRI$group == "PG",1,0)
+    # add the covariates info
+    dat_match$edu_years_sum = dat_match$edu_years + dat_match$edu_years_voca 
+    cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years_sum','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
+    write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+    
+    setwd(path_dat)
+    write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+  }
   
-  setwd(path_dat)
-  write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
-  
-  # save the import
-  setwd(path_dat)
-  save(file="data_pdt.rda",list = c("data_pdt","dat_match"))
-  # save the workspace
-  setwd(path_dat)
-  save(file="data_pdt_Maja.rda",list = ls())
-  
-  # get the backup
-  data_pdt_bcp = data_pdt
-  dat_match_bcp = dat_match
-  
-  tryCatch({
-  # google drive
-  setwd(path_dat_GD)
-  write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
-  setwd(path_dat_GD)
-  save(file="data_pdt_Maja.rda",list = ls())
-  setwd(path_dat_GD)
-  save(file="data_pdt.rda",list = c("data_pdt","dat_match"))
-  }, error = function (e) {
-    disp('No saving to Google Drive possible.')
-  })
-  
+  if (do_save) {
+    # save the import
+    setwd(path_dat)
+    save(file="data_pdt.rda",list = c("data_pdt","dat_match"))
+    # save the workspace
+    setwd(path_dat)
+    save(file="data_pdt_Maja.rda",list = ls())
+    
+    # get the backup
+    data_pdt_bcp = data_pdt
+    dat_match_bcp = dat_match
+    
+    tryCatch({
+      if (write_info_mri_selection) {
+        # google drive
+        setwd(path_dat_GD)
+        write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+      }
+      setwd(path_dat_GD)
+      save(file="data_pdt_Maja.rda",list = ls())
+      setwd(path_dat_GD)
+      save(file="data_pdt.rda",list = c("data_pdt","dat_match"))
+    }, error = function (e) {
+      disp('No saving to Google Drive possible.')
+    })
+  } else {
+    message('Saving of data_pdt is off!!!')
+  }
 } else {
   # import from existing import
   # check what paths work
@@ -812,8 +830,10 @@ if (import_existing_imp == 0) {
   cur_MRI$group  = ifelse(cur_MRI$group == "PG",1,0)
   # add the covariates info
   dat_match$edu_years_sum = dat_match$edu_years + dat_match$edu_years_voca 
-  cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years_sum','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
-  write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+  if (write_info_mri_selection) {
+    cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years_sum','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
+    write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+  }
   
   if (path_S == F) {
     disp('loaded GD data_pdt_bcp, dat_match_bcp')

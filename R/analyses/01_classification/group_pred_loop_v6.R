@@ -67,6 +67,10 @@ agk.load.ifnot.install('matlib')
 agk.load.ifnot.install('robust')
 agk.load.ifnot.install('e1071')
 agk.load.ifnot.install('compiler')
+agk.load.ifnot.install('StatMatch')
+agk.load.ifnot.install('MatchIt')
+agk.load.ifnot.install('optmatch')
+agk.load.ifnot.install('WhatIf')
 
 # WHAT TO RUN =================================================================
 # just the behavioral parameter sets
@@ -80,7 +84,7 @@ outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_wiaddfeat_noperm = 0 # adding physio
 
 # only peripheral-physiological / MRI
-outer_cv_addfeaton_noperm = 1  
+outer_cv_addfeaton_noperm = 0  
 outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_addfeaton_noperm = 0 
 

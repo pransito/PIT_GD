@@ -14,12 +14,12 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 ## PARAMETERS =================================================================
 ## parameters that may be set
 # use last exisiting import
-import_existing_imp      = 0
+import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
 import_from_scratch      = 0
 # do any matching or non at all?
-do_matching              = 0
+do_matching              = 1
 # save the data_pdt? only off for debug
 do_save                  = 1
 # you may tunr off the export of the info_mri selection for debugging;
@@ -71,7 +71,7 @@ get_MRI_extr             = 0
 # how much aggregate (3 is from 12by12 to 4by4 because 12/3 == 4)
 cur_agg                  = 3
 # matching criterion p-value (for matching experimental groups)
-m_crit                   = 0.15
+m_crit                   = 0.12
 # KFG cut off equal and above is PG (16 or 25)
 KFG_cutoff               = 16
 # for matching: which studies to do it on, and what are the group sizes?

@@ -13,10 +13,11 @@ get.truth.4 = function() {
 }
 
 # set runs
-runs0 = 10000
+runs0 = 2000
 
 # under 0
 # pooled
+# updated for the 28 vs. 28 case
 all_aucs  = c()
 all_aucsl = list()
 all_accs  = c()
@@ -28,19 +29,21 @@ for (ii in 1:runs0) {
   inner_truths = c()
   inner_resps  = c()
   # 3
-  for (jj in 1:8) {
+  for (jj in 1:10) {
     # get truth
     inner_truths = c(inner_truths,as.character(get.truth()))
     # get response
     inner_resps  = c(inner_resps,as.numeric(randn(1,6)*10))
   }
-  # 4
-  for (jj in 9:10) {
-    # get truth
-    inner_truths = c(inner_truths,as.character(get.truth.4()))
-    # get response
-    inner_resps  = c(inner_resps,as.numeric(randn(1,8)*10))
-  }
+  
+  # # 4
+  # for (jj in 9:9) {
+  #   # get truth
+  #   inner_truths = c(inner_truths,as.character(get.truth.4()))
+  #   # get response
+  #   inner_resps  = c(inner_resps,as.numeric(randn(1,8)*10))
+  # }
+  
   # cur_auc
   cur_roc         = roc(inner_truths,inner_resps)
   all_aucs[ii]    = cur_roc$auc
@@ -70,6 +73,7 @@ setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_c
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/51')
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/54')
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/55')
+setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/20')
 e = new.env()
 load('MRT_predGrp1_rounds_wio_onlyPhys_no_perm.RData',envir = e)
 
@@ -85,7 +89,7 @@ spe         = mean(unlist(lapply(e$CV_res_list_op,FUN = cur_fun_spe)))
 
 ## density plots ==============================================================
 # only auc but multiple classifiers
-# old mean_auc = 0.6475 (where is this from)
+# old mean_auc = 0.6475 (where is this from?)
 #cur_dat_be = data.frame(H_0 = all_aucs,mean_auc = auc,classifier = 'prev_behav_glmnet')
 cur_dat_gl = data.frame(H_0 = all_aucs,mean_auc = mean(auc),classifier = 'MRI_glmnet')
 #cur_dat_sv = data.frame(H_0 = all_aucs,mean_auc = mean(real_aucs_svm),classifier = 'MRI_svm')

@@ -368,6 +368,7 @@ agk.domatch.elim = function(which_studies,dfs,cur_groups,cur_names_dom_narrowed)
   # then tests if matching ok
   # if not continues. else returns
   # assumes equal group sizes; otherwise does nothing (then do agk.domatch first)
+  cur_names_dom_narrowed_orig = cur_names_dom_narrowed
   
   dfs_bcp    = dfs
   drop_lists = list()
@@ -414,7 +415,10 @@ agk.domatch.elim = function(which_studies,dfs,cur_groups,cur_names_dom_narrowed)
     score      = res[[1]]$ok_or_checkneeded[res[[1]]$cur_var %in% cur_names_dom_narrowed]
     contn_elim = any(score == 'NEEDS_CHECK')
     
-    while (contn_elim & ct < 5) {
+    # # update which variables to match for
+    # cur_names_dom_narrowed = cur_names_dom_narrowed_orig[which(score == 'NEEDS_CHECK')]
+    
+    while (contn_elim & ct < 2) {
       disp(paste('Cutting couple number',ct+1))
       cur_dist = distmat(as.matrix(cur_df_HC_vars), as.matrix(cur_df_PG_vars))
       #cur_dist = mahalanobis.dist(as.matrix(cur_df_HC_vars), as.matrix(cur_df_PG_vars)) # does not work better

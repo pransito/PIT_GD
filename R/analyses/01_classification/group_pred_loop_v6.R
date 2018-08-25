@@ -84,7 +84,7 @@ outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_wiaddfeat_noperm = 0 # adding physio
 
 # only peripheral-physiological / MRI
-outer_cv_addfeaton_noperm = 0  
+outer_cv_addfeaton_noperm = 1  
 outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_addfeaton_noperm = 0 
 
@@ -98,7 +98,7 @@ do_report_feat_only       = 0
 
 # PARAMETERS TO SET: General ==================================================
 # number of runs to get the CV results distribution, 1000 recommended
-runs                  = 55 
+runs                  = 20 
 # physio pred: 300 from home; current correct one for behav: 1010; 1011: for MRI but without control; 1012 MRI with control vars.
 # 200 for MRI: is the classifier from v14; 201 is with cleaned variables BIC degree 2; 202 with cleaned AIC degree 2; 45 cleaning AIC, degree is 1 [rob always F]
 # 46 cleaning BIC, degree 1; 50: no cleaning
@@ -109,6 +109,7 @@ runs                  = 55
 # 53 is no cleaning, no control variables [val with categories on ss fmri level]
 # 54 is no cleaning, no control variables [glc on ss fmri level]
 # 55 is no cleaning, no control variables [glc on ss fmri level] [28 vs. 28 sample] [no means in fmri]
+# 15 is no cleaning, no control variables [glc on ss fmri level] [27 vs. 27 sample, matched] [with means in fmri]
 
 # set some seed to ensure reproducability
 des_seed              = 990 # 990 normally (combine 90 runs with 10 runs)
@@ -186,7 +187,7 @@ ridge_bv_reps           = 20
 
 # PARAMETERS TO SET: Physio ===================================================
 # regress out covs (third option; valid option now)
-regress_out_covs     = 0
+regress_out_covs     = 1
 # feature selection:
 kill_high_entr       = 0
 # only for additional features (physio); 0 for none, 1 for

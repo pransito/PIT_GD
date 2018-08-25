@@ -12,8 +12,13 @@ get.truth.4 = function() {
   sample(c(rep('HC',4),rep('PG',4)))
 }
 
+get.truth.2 = function() {
+  sample(c(rep('HC',2),rep('PG',2)))
+}
+
+
 # set runs
-runs0 = 10000
+runs0 = 4000
 
 # under 0
 # pooled
@@ -28,19 +33,27 @@ for (ii in 1:runs0) {
   inner_truths = c()
   inner_resps  = c()
   # 3
-  for (jj in 1:8) {
+  for (jj in 1:10) {
     # get truth
     inner_truths = c(inner_truths,as.character(get.truth()))
     # get response
     inner_resps  = c(inner_resps,as.numeric(randn(1,6)*10))
   }
-  # 4
-  for (jj in 9:10) {
-    # get truth
-    inner_truths = c(inner_truths,as.character(get.truth.4()))
-    # get response
-    inner_resps  = c(inner_resps,as.numeric(randn(1,8)*10))
-  }
+  # # 4
+  # for (jj in 9:9) {
+  #   # get truth
+  #   inner_truths = c(inner_truths,as.character(get.truth.4()))
+  #   # get response
+  #   inner_resps  = c(inner_resps,as.numeric(randn(1,8)*10))
+  # }
+  # 2
+  # for (jj in 9:9) {
+  #   # get truth
+  #   inner_truths = c(inner_truths,as.character(get.truth.4()))
+  #   # get response
+  #   inner_resps  = c(inner_resps,as.numeric(randn(1,8)*10))
+  # }
+  
   # cur_auc
   cur_roc         = roc(inner_truths,inner_resps)
   all_aucs[ii]    = cur_roc$auc
@@ -126,6 +139,94 @@ weighted_responses = mod_weights[1]*responses[[1]]
 for (mm in 2:length(win_mods)) {
   weighted_responses = weighted_responses + mod_weights[mm]*responses[[mm]]
 }
+preds     = ifelse(weighted_responses <= 0, 'HC','PG')
+
+acc = mean(preds == dat_match$HCPG)
+roc = pROC::roc(dat_match$HCPG,predictor=weighted_responses)
+auc = roc$auc
+cm  = confusionMatrix(as.factor(preds),dat_match$HCPG)
+sen = cm$byClass[1]
+spe = cm$byClass[2]
+
+# test
+1-agk.density_p.c(all_accs,acc)
+1-agk.density_p.c(all_aucs,auc)
+1-agk.density_p.c(all_sens,sen)
+1-agk.density_p.c(all_spec,spe)
+
+# weighted models auc
+weighted_mod_mean_auc = auc
+
+## use just the winning model mean model ======================================
+setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1010')
+load('POSTPILOT_HCPG_predGrp1_rounds_noo_noaddfeat.RData')
+
+# get the weights
+mod_weights = as.matrix(table(cur_mod_sel_nooCV))
+mod_weights = mod_weights/sum(mod_weights)
+win_mods    = row.names(mod_weights)
+
+# winning model beta values
+mean_PP_mod = list()
+for (mm in 1:length(win_mods)) {
+  winning_mod = win_mods[mm]
+  win_mods_distr_c = list_winning_model_c_nooCV[which(winning_mod == cur_mod_sel_nooCV)]
+  win_mods_distr_l = list_winning_model_l_nooCV[which(winning_mod == cur_mod_sel_nooCV)]
+  
+  # make a data frame of it:
+  win_mod_coefs        = as.matrix(win_mods_distr_c[[1]])
+  win_mod_coefs        = as.data.frame(t(win_mod_coefs))
+  names(win_mod_coefs) = win_mods_distr_l[[1]]
+  
+  for (ii in 2:length(win_mods_distr_c)) {
+    cur_win_mod_coefs        = as.matrix(t(win_mods_distr_c[[ii]]))
+    cur_win_mod_coefs        = as.data.frame(cur_win_mod_coefs)
+    names(cur_win_mod_coefs) = win_mods_distr_l[[ii]]
+    win_mod_coefs = rbind.fill(win_mod_coefs,cur_win_mod_coefs)
+  }
+  #imp_0 = function(x) {x[is.na(x)] = 0; return(x)}
+  #win_mod_coefs = as.data.frame(lapply(win_mod_coefs,FUN=imp_0))
+  mean_PP_mod[[mm]] = colMeans(as.matrix(win_mod_coefs))
+}
+
+# use just the first model (the winning model) hard coded
+mean_PP_mod = mean_PP_mod[1]
+win_mods    = win_mods[1]
+
+# get the standardization
+message('The application of standardization from POSTPILOT needs to be seamless!')
+# # first load postpilot data [prep for publication a new workspace]
+# setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1010')
+# win_mods = agk.recode(win_mods,c('acc'),c('ac'))
+# for (mm in 1:length(win_mods)) {
+#   pp_b_dat = featmod_coefs[[win_mods[mm]]]
+#   pp_b_dat = pp_b_dat[,grep('HCPG',names(pp_b_dat),invert=TRUE)]
+#   pp_b_dat = data.frame(pp_b_dat,pred_smoking_ftdt=dat_match$smoking_ftdt)
+#   pp_b_dat = scale(pp_b_dat)
+#   save(pp_b_dat, file=paste0('POSTPILOT_',win_mods[mm],'_stand.RData'))
+# }
+
+# apply the standardization and get decision value
+win_mods    = agk.recode(win_mods,c('acc'),c('ac'))
+setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1010')
+responses = list()
+for (mm in 1:length(win_mods)) {
+  
+  load(paste0('POSTPILOT_', win_mods[mm],'_stand.RData'))
+  pp_scale = attributes(pp_b_dat)
+  
+  mr_b_dat = featmod_coefs[[win_mods[mm]]]
+  mr_b_dat = mr_b_dat[,grep('HCPG',names(mr_b_dat),invert=T)]
+  mr_b_dat = data.frame(mr_b_dat,pred_smoking_ftdt = dat_match$smoking_ftdt)
+  mr_b_dat = scale(mr_b_dat,center = pp_scale$`scaled:center`, scale = pp_scale$`scaled:scale`)
+  mr_b_dat = data.frame(ones(length(mr_b_dat[,1]),1),mr_b_dat)
+  
+  # prediction
+  responses[[mm]] = t(as.matrix(mean_PP_mod[[mm]])) %*% t(as.matrix(mr_b_dat))
+}
+
+# consensus (weighted sum of decision values)
+weighted_responses = mod_weights[1]*responses[[1]]
 preds     = ifelse(weighted_responses <= 0, 'HC','PG')
 
 acc = mean(preds == dat_match$HCPG)

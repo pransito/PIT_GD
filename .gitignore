@@ -1,8 +1,9 @@
 .Rproj.user
 .Rhistory
-*.RData
+.RData
 .Ruserdata
 old/
 99_old/
 Screening_Export/
 results/
+R/analysis/01_classification/results/

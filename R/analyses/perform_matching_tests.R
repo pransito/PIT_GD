@@ -3,7 +3,7 @@
 # Cohort data frames; secondly the matching is performed on those
 agk.perform.matching.splitdfs = function(dat_match,cur_study = NULL) {
   # what are the names of the to-be-matched vars?
-  cur_names = c('edu_years','edu_years_voca','edu_hollingshead', 'income_personal','debt_overall_num','debt_gambling_num','smoking_ftdt','Age',               
+  cur_names = c('edu_years','edu_years_sum','edu_years_voca','edu_hollingshead', 'income_personal','debt_overall_num','debt_gambling_num','smoking_ftdt','Age',               
                 'audit','BDI','SOGS','KFG','BIS','GBQ_persi','GBQ_illus','BIG')        
   
   # splitting
@@ -138,9 +138,9 @@ agk.perform.matching.tests = function(dfs,cur_groups,cur_matching,path_mtc,write
     
     # add the needs matching info
     if (cur_group != "dem_gender") {
-      needs_matching                      = c("YES","YES","YES","YES","DM","NO","YES","YES","YES","DM","NO","NO","DM","DM","DM",'NO',"YES","YES","YES","YES","DM","DM")
+      needs_matching                      = c("YES","YES","YES","YES","YES","DM","NO","YES","YES","YES","DM","NO","NO","DM","DM","DM",'NO',"YES","YES","YES","YES","DM","DM")
     } else {
-      needs_matching                      = c("YES","YES","YES","YES","YES","NO","YES","YES","YES","YES","YES","YES","YES","DM","DM",'NO',"YES","YES","YES","DM","DM")
+      needs_matching                      = c("YES","YES","YES","YES","YES","YES","NO","YES","YES","YES","YES","YES","YES","YES","DM","DM",'NO',"YES","YES","YES","DM","DM")
     }
     
     cur_match_test$needs_matching       = needs_matching

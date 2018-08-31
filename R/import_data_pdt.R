@@ -14,7 +14,7 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 ## PARAMETERS =================================================================
 ## parameters that may be set
 # use last exisiting import
-import_existing_imp      = 1
+import_existing_imp      = 0
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
 import_from_scratch      = 0
@@ -80,6 +80,10 @@ which_studies            = c("MRT","POSTPILOT")
 desired_n                = list(c(32,32),c(30,30))
 # for matching (dom: do matching variables, do matching variables narrowed for elimination of couples)
 # cut out: 'edu_years_voca','edu_hollingshead'
+
+#cur_names_dom            = c('edu_years_sum','income_personal','smoking_ftdt','Age','audit','dem_gender','handedness','unemployed')
+#cur_names_dom_narrowed   = c('edu_years_sum','Age','smoking_ftdt')
+
 cur_names_dom            = c('edu_years','income_personal','smoking_ftdt','Age','audit','dem_gender','handedness','unemployed')
 cur_names_dom_narrowed   = c('edu_years','Age','smoking_ftdt')
 
@@ -492,6 +496,9 @@ if (import_existing_imp == 0) {
     dat_match$edu_years_voca[ii]   = as.numeric(as.character(cur_years_voca))
     dat_match$edu_hollingshead[ii] = as.numeric(as.character(cur_years_holl))
   }
+  
+  # making a sum education variable
+  dat_match$edu_years_sum = dat_match$edu_years + dat_match$edu_years_voca
   
   # income
   tmp = data.frame(dat_match[c(grep(pattern="VPPG",names(dat_match)),

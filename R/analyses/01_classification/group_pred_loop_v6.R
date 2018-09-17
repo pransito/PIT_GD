@@ -84,9 +84,9 @@ outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_wiaddfeat_noperm = 0 # adding physio
 
 # only peripheral-physiological / MRI
-outer_cv_addfeaton_noperm = 0  
+outer_cv_addfeaton_noperm = 0 # Ha only, i.e. physio/MRI  
 outer_cv_addfeaton_wiperm = 0 # with permutation
-noout_cv_addfeaton_noperm = 0 # to get the complete model 
+noout_cv_addfeaton_noperm = 1 # to get the complete model 
 
 outer_cv_c_model_noperm   = 0 # control model/null-model for classification
 
@@ -98,7 +98,7 @@ do_report_feat_only       = 1
 
 # PARAMETERS TO SET: General ==================================================
 # number of runs to get the CV results distribution, 1000 recommended
-runs                  = 20 
+runs                  = 40 
 # physio pred: 300 from home; current correct one for behav: 1010; 1011: for MRI but without control; 1012 MRI with control vars.
 # 200 for MRI: is the classifier from v14; 201 is with cleaned variables BIC degree 2; 202 with cleaned AIC degree 2; 45 cleaning AIC, degree is 1 [rob always F]
 # 46 cleaning BIC, degree 1; 50: no cleaning
@@ -189,7 +189,9 @@ ridge_bv_reps           = 20
 
 # PARAMETERS TO SET: Physio ===================================================
 # regress out covs (third option; valid option now)
-regress_out_covs     = 0
+regress_out_covs     = 1
+# regress out covs (cleaning MRI data) information criterion
+clean_inf_crit       = 'AIC'
 # feature selection:
 kill_high_entr       = 0
 # only for additional features (physio); 0 for none, 1 for
@@ -958,7 +960,7 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
   p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
                         width = 0) + ylab("mean (95% CI over CV rounds)\n")
   
-  p <- p + ggtitle("Estimated classification weights of winning model with CIs")
+  p <- p + ggtitle("Estimated regression weights of winning model with CIs")
   p = p + theme(text = element_text(size=20),
                 axis.text.x = element_text(angle=90, hjust=1)) 
   print(p)
@@ -966,13 +968,25 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
   # reducing a bit the size
   if (dim(ci_res)[1] > 20) {
     message('displaying a reduced set')
+    message('reducing the names')
     ci_res_red = ci_res[abs(ci_res$mean) > 1,]
+    
+    # names simpler:
+    ci_res_red$coef = gsub('SS__grp01_noCov_','',ci_res_red$coef)
+    ci_res_red$coef = gsub('SS__','',ci_res_red$coef)
+    ci_res_red$coef = gsub('PicGamOnxAcc','PIT',ci_res_red$coef)
+    ci_res_red$coef = gsub('PicGamOnxacc','PIT',ci_res_red$coef)
+    ci_res_red$coef = gsub('ROI_LR_','',ci_res_red$coef)
+    ci_res_red$coef = gsub('_LR','',ci_res_red$coef)
+    ci_res_red$coef = gsub('noCov_PPI_','',ci_res_red$coef)
+    ci_res_red$coef = gsub('X','x',ci_res_red$coef)
+    
     p = ggplot(data = ci_res_red, aes(coef,mean))
     p = p+geom_bar(stat="identity")
     p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
                           width = 0) + ylab("mean (95% CI over CV rounds)\n")
     
-    p <- p + ggtitle("Estimated classification weights of winning model with CIs")
+    p <- p + ggtitle("Estimated regression weights with CIs")
     p = p + theme(text = element_text(size=20),
                   axis.text.x = element_text(angle=90, hjust=1)) 
     print(p)

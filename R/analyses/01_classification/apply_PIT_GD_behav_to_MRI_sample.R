@@ -1,4 +1,6 @@
 # script to apply PIT_GD_behav classifier to MRI data
+# which_study must be MRT
+# pred_loop must be run with everything set to 0 so that only init runs
 
 # load libraries
 agk.load.ifnot.install('Matching')

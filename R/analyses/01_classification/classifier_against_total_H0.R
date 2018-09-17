@@ -74,6 +74,7 @@ setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_c
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/54')
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/55')
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/20')
+setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/40')
 e = new.env()
 load('MRT_predGrp1_rounds_wio_onlyPhys_no_perm.RData',envir = e)
 
@@ -109,3 +110,4 @@ print(p)
 1-agk.density_p.c(all_accs,acc)
 1-agk.density_p.c(all_sens,sen)
 1-agk.density_p.c(all_spec,spe)
+

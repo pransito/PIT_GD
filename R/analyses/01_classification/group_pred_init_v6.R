@@ -112,67 +112,69 @@ if (reduce_fMRI_data & add_cr_pp_ma & which_study == 'MRT') {
   cr_agg_pp   = cr_agg_pp_r
 }
 
-# clean out subject variable
-row.names(cr_agg_pp) = cr_agg_pp$subject
-cr_agg_pp$subject    = NULL
-
-# standardize within subject
-cr_agg_pp = as.data.frame(t(scale(t(cr_agg_pp))))
-
-# reduce set further by computing means
-cr_agg_pp_m = cr_agg_pp
-# SS cue reactivity variables; mean of L and R (so mean of two variables)
-all_cr_names   = names(cr_agg_pp_m)[grep('SS__grp01_',names(cr_agg_pp_m))]
-all_cr_names_L = all_cr_names[grep('_Left_',all_cr_names)]
-for (nn in 1:length(all_cr_names_L)) {
-  cur_name                     = all_cr_names_L[nn]
-  cur_R                        = gsub('_Left_','_Right_',cur_name)
-  cr_agg_pp_m[[cur_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R]]) /2
-  cr_agg_pp_m[cur_R]           = NULL
-  # get the name we need to change
-  cur_ind                     = which(names(cr_agg_pp_m) == cur_name)
-  names(cr_agg_pp_m)[cur_ind] = gsub('_Left_','_LR_',names(cr_agg_pp_m[cur_name]))
-}
-# SS gPPI PIT variables; mean of L and R (so mean of four variables)
-all_gppi_names         = names(cr_agg_pp_m)[grep('SS__PPI_',names(cr_agg_pp_m))]
-all_gppi_names_L       = all_gppi_names[grep('_PPI_L',all_gppi_names)]
-all_gppi_names_L_L_tar = all_gppi_names[grep('_ROI_L',all_gppi_names_L)]
-for (nn in 1:length(all_gppi_names_L_L_tar)) {
-  cur_name                     = all_gppi_names_L_L_tar[nn]             # left source left target
-  cur_R_source                 = gsub('_PPI_L_','_PPI_R_',cur_name)     # right source left target
-  cur_R_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_R_source) # right source right target
-  cur_L_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_name)     # left source right target
-
-  # new name and calculation of mean
-  new_name                     = gsub('_PPI_L_','_PPI_LR_',cur_name)
-  new_name                     = gsub('_ROI_L_','_ROI_LR_',new_name)
-  cr_agg_pp_m[[new_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R_source]] + cr_agg_pp_m[[cur_R_source_L_tar]] + cr_agg_pp_m[[cur_L_source_L_tar]])/4
-
+if (which_study == 'MRT' & add_cr_pp_ma) {
+  # clean out subject variable
+  row.names(cr_agg_pp) = cr_agg_pp$subject
+  cr_agg_pp$subject    = NULL
+  
+  # standardize within subject
+  cr_agg_pp = as.data.frame(t(scale(t(cr_agg_pp))))
+  
+  # reduce set further by computing means
+  cr_agg_pp_m = cr_agg_pp
+  # SS cue reactivity variables; mean of L and R (so mean of two variables)
+  all_cr_names   = names(cr_agg_pp_m)[grep('SS__grp01_',names(cr_agg_pp_m))]
+  all_cr_names_L = all_cr_names[grep('_Left_',all_cr_names)]
+  for (nn in 1:length(all_cr_names_L)) {
+    cur_name                     = all_cr_names_L[nn]
+    cur_R                        = gsub('_Left_','_Right_',cur_name)
+    cr_agg_pp_m[[cur_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R]]) /2
+    cr_agg_pp_m[cur_R]           = NULL
+    # get the name we need to change
+    cur_ind                     = which(names(cr_agg_pp_m) == cur_name)
+    names(cr_agg_pp_m)[cur_ind] = gsub('_Left_','_LR_',names(cr_agg_pp_m[cur_name]))
+  }
+  # SS gPPI PIT variables; mean of L and R (so mean of four variables)
+  all_gppi_names         = names(cr_agg_pp_m)[grep('SS__PPI_',names(cr_agg_pp_m))]
+  all_gppi_names_L       = all_gppi_names[grep('_PPI_L',all_gppi_names)]
+  all_gppi_names_L_L_tar = all_gppi_names[grep('_ROI_L',all_gppi_names_L)]
+  for (nn in 1:length(all_gppi_names_L_L_tar)) {
+    cur_name                     = all_gppi_names_L_L_tar[nn]             # left source left target
+    cur_R_source                 = gsub('_PPI_L_','_PPI_R_',cur_name)     # right source left target
+    cur_R_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_R_source) # right source right target
+    cur_L_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_name)     # left source right target
+    
+    # new name and calculation of mean
+    new_name                     = gsub('_PPI_L_','_PPI_LR_',cur_name)
+    new_name                     = gsub('_ROI_L_','_ROI_LR_',new_name)
+    cr_agg_pp_m[[new_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R_source]] + cr_agg_pp_m[[cur_R_source_L_tar]] + cr_agg_pp_m[[cur_L_source_L_tar]])/4
+    
+    # delete unneeded variables
+    cr_agg_pp_m[cur_name]            = NULL
+    cr_agg_pp_m[cur_R_source]        = NULL
+    cr_agg_pp_m[cur_R_source_L_tar]  = NULL
+    cr_agg_pp_m[cur_L_source_L_tar]  = NULL
+  }
+  # some by hand
+  if (fmri_extr == 'ngm' | fmri_extr == 'glc') {
+    cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG)/2
+    cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG)/2
+    cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG)/2
+  } else if (fmri_extr == 'val') {
+    cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG)/2
+    cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG)/2
+    cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG)/2
+  }
+  
   # delete unneeded variables
-  cr_agg_pp_m[cur_name]            = NULL
-  cr_agg_pp_m[cur_R_source]        = NULL
-  cr_agg_pp_m[cur_R_source_L_tar]  = NULL
-  cr_agg_pp_m[cur_L_source_L_tar]  = NULL
+  cr_agg_pp_m[names(cr_agg_pp_m)[grep('PPI_._',names(cr_agg_pp_m))]] = NULL
+  cr_agg_pp = cr_agg_pp_m
 }
-# some by hand
-if (fmri_extr == 'ngm' | fmri_extr == 'glc') {
-  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG)/2
-  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG)/2
-  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG)/2
-} else if (fmri_extr == 'val') {
-  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG)/2
-  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG)/2
-  cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG)/2
-}
-
-# delete unneeded variables
-cr_agg_pp_m[names(cr_agg_pp_m)[grep('PPI_._',names(cr_agg_pp_m))]] = NULL
-cr_agg_pp = cr_agg_pp_m
 
 
 
 # cleaning cr_agg_pp
-if (add_cr_pp_ma) {
+if (add_cr_pp_ma & which_study == 'MRT') {
   if (regress_out_covs) {
     if (!exists('cr_agg_pp_cleaned')) {
       cr_agg_pp_uncleaned = cr_agg_pp
@@ -189,7 +191,7 @@ if (add_cr_pp_ma) {
       } else if (which_study == 'POSTPILOT_HCPG') {
         preds = dat_match[c('smoking_ftdt')]
       }
-      cr_agg_pp_cleaned    = lapply(cr_agg_pp,FUN=agk.regress.out.c,rob=F,inf_crit='AIC',preds=preds,ro_info = 1,des_degree = 1)
+      cr_agg_pp_cleaned    = lapply(cr_agg_pp,FUN=agk.regress.out.c,rob=F,inf_crit=clean_inf_crit,preds=preds,ro_info = 1,des_degree = 1)
       cur_fun_df           = function(x) {return(x$'res')}
       cur_fun_ro           = function(x) {return(x$ro)}
       cr_agg_pp_cleaned_df = as.data.frame(lapply(cr_agg_pp_cleaned,FUN=cur_fun_df))

@@ -84,17 +84,17 @@ outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_wiaddfeat_noperm = 0 # adding physio
 
 # only peripheral-physiological / MRI
-outer_cv_addfeaton_noperm = 1  
+outer_cv_addfeaton_noperm = 0  
 outer_cv_addfeaton_wiperm = 0 # with permutation
-noout_cv_addfeaton_noperm = 0 
+noout_cv_addfeaton_noperm = 0 # to get the complete model 
 
 outer_cv_c_model_noperm   = 0 # control model/null-model for classification
 
 # what to report
-do_report                 = 0
+do_report                 = 1
 do_report_no_added_feat   = 0
 do_report_with_added_feat = 0
-do_report_feat_only       = 0
+do_report_feat_only       = 1
 
 # PARAMETERS TO SET: General ==================================================
 # number of runs to get the CV results distribution, 1000 recommended
@@ -147,6 +147,8 @@ strat_innerCV         = T
 c_mod                 = F
 # for report use permut (F) or c_mod?
 c_mod_report          = T
+# Any reporting of p-values against null?
+report_CV_p           = F
 # all alphas: then no model selection with just ridge but complete elastic net 
 # for all models immediately
 all_alphas            = F
@@ -187,7 +189,7 @@ ridge_bv_reps           = 20
 
 # PARAMETERS TO SET: Physio ===================================================
 # regress out covs (third option; valid option now)
-regress_out_covs     = 1
+regress_out_covs     = 0
 # feature selection:
 kill_high_entr       = 0
 # only for additional features (physio); 0 for none, 1 for
@@ -563,11 +565,9 @@ if (noout_cv_addfeaton_noperm) {
     CVnoo_res_list_op[[hh]]  = CV_res
     
     # getting the complete final model's coefs
-    cur_labs = colnames(full_mod_tmp$coef)
-    cur_labs = gsub(cur_labs,pattern="pred_",replacement="")
-    cur_labs = cur_labs[-1]
-    cur_coef = full_mod_tmp$coef
-    cur_coef = cur_coef[-1]
+    cur_labs = names(full_mod_cv[[kk]])
+    cur_labs = gsub(cur_labs,pattern="(Intercept)",replacement="grp_classifier_intercept")
+    cur_coef = as.numeric(full_mod_cv[[kk]])
     
     # TODO:
     # inspection of the additional feature selection results
@@ -651,6 +651,8 @@ if (do_report) {
     all_res_files_Ha = all_res_files[grep('wiaddfeat',all_res_files)]
   } else if (do_report_no_added_feat) {
     all_res_files_Ha = all_res_files[grep('noaddfeat',all_res_files)]
+  } else if (do_report_feat_only) {
+    all_res_files_Ha = all_res_files[grep('onlyPhys',all_res_files)]
   } else {
     stop('Ha not defined for report.')
   }
@@ -665,7 +667,7 @@ if (do_report) {
   }
   
   setwd(cur_home)
-  if (c_mod_report) {
+  if (c_mod_report & report_CV_p) {
     # using control model instead of permutation
     CVp_res_list    = CVcm_res_list
     CVp_res_list_op = CVcm_res_list
@@ -675,240 +677,253 @@ if (do_report) {
 
 
 # REPORTING: NO ADDED PHYS ====================================================
-if (do_report_no_added_feat | do_report_with_added_feat) {
-  # p-value for the algorithm
-  # get the accuracy null-distrib/alt hypothesis distribution
-  cor    = c() # correlation
-  cor_p  = c() # correlation permuted
-  coru   = c() # correlation unpooled (mean of k-fold)
-  coru_p = c() # correlation unpooled (mean of k-fold) permuted
-  mse    = c() # mean squared error
-  mse_p  = c() # mean squared error permuted
-  accs_p = c()
-  accs   = c()
-  sens_p = c()
-  sens   = c()
-  spec_p = c()
-  spec   = c()
-  auc_p  = c()
-  auc    = c()
-  roc_pl = list()
-  rocl   = list()
-  for (ii in 1:length(CVp_res_list)) {
-    accs_p[ii]   = CVp_res_list[[ii]]$acc$accuracy
-    accs[ii]     = CV_res_list[[ii]]$acc$accuracy
-    sens_p[ii]   = CVp_res_list[[ii]]$acc$cur_sens
-    sens[ii]     = CV_res_list[[ii]]$acc$cur_sens
-    spec_p[ii]   = CVp_res_list[[ii]]$acc$cur_spec
-    spec[ii]     = CV_res_list[[ii]]$acc$cur_spec
-    roc_pl[[ii]] = CVp_res_list[[ii]]$roc
-    auc_p[ii]    = as.numeric(roc_pl[[ii]]$auc)
-    rocl[[ii]]   = CV_res_list[[ii]]$roc
-    auc[ii]      = as.numeric(rocl[[ii]]$auc)
-    cor[[ii]]    = CV_res_list[[ii]]$cor$estimate
-    cor_p[[ii]]  = CVp_res_list[[ii]]$cor$estimate
-    coru[[ii]]   = CV_res_list[[ii]]$coru
-    coru_p[[ii]] = CVp_res_list[[ii]]$coru
-    mse[[ii]]    = CV_res_list[[ii]]$mse
-    mse_p[[ii]]  = CVp_res_list[[ii]]$mse
+if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
+  if (report_CV_p) {
+    # p-value for the algorithm
+    # get the accuracy null-distrib/alt hypothesis distribution
+    cor    = c() # correlation
+    cor_p  = c() # correlation permuted
+    coru   = c() # correlation unpooled (mean of k-fold)
+    coru_p = c() # correlation unpooled (mean of k-fold) permuted
+    mse    = c() # mean squared error
+    mse_p  = c() # mean squared error permuted
+    accs_p = c()
+    accs   = c()
+    sens_p = c()
+    sens   = c()
+    spec_p = c()
+    spec   = c()
+    auc_p  = c()
+    auc    = c()
+    roc_pl = list()
+    rocl   = list()
+    for (ii in 1:length(CVp_res_list)) {
+      accs_p[ii]   = CVp_res_list[[ii]]$acc$accuracy
+      accs[ii]     = CV_res_list[[ii]]$acc$accuracy
+      sens_p[ii]   = CVp_res_list[[ii]]$acc$cur_sens
+      sens[ii]     = CV_res_list[[ii]]$acc$cur_sens
+      spec_p[ii]   = CVp_res_list[[ii]]$acc$cur_spec
+      spec[ii]     = CV_res_list[[ii]]$acc$cur_spec
+      roc_pl[[ii]] = CVp_res_list[[ii]]$roc
+      auc_p[ii]    = as.numeric(roc_pl[[ii]]$auc)
+      rocl[[ii]]   = CV_res_list[[ii]]$roc
+      auc[ii]      = as.numeric(rocl[[ii]]$auc)
+      cor[[ii]]    = CV_res_list[[ii]]$cor$estimate
+      cor_p[[ii]]  = CVp_res_list[[ii]]$cor$estimate
+      coru[[ii]]   = CV_res_list[[ii]]$coru
+      coru_p[[ii]] = CVp_res_list[[ii]]$coru
+      mse[[ii]]    = CV_res_list[[ii]]$mse
+      mse_p[[ii]]  = CVp_res_list[[ii]]$mse
+    }
+    
+    # make new ROC objects
+    for (ii in 1:length(rocl)) {
+      # non_permuted
+      predictor  = rocl[[ii]]$original.predictor
+      response   = rocl[[ii]]$original.response
+      response   = ifelse(response == 'PG',1,0)
+      predictor  = agk.scale_range(predictor,0,1)
+      rocl[[ii]] = roc(response,predictor)
+      auc[ii]    = auc(rocl[[ii]])
+      rocl[[ii]] = smooth( rocl[[ii]],n = 500)
+      
+      # permuted (or control model)
+      predictor    = roc_pl[[ii]]$original.predictor
+      response     = roc_pl[[ii]]$original.response
+      response     = ifelse(response == 'PG',1,0)
+      predictor    = agk.scale_range(predictor,0,1)
+      roc_pl[[ii]] = roc(response,predictor)
+      auc_p[ii]    = auc(roc_pl[[ii]])
+      
+      if (var(roc_pl[[ii]]$original.predictor) == 0) {
+        cur_obj = list()
+        cur_obj$sensitivities = seq(0,1,length.out = 502)
+        cur_obj$specificities = seq(0,1,length.out = 502)
+        roc_pl[[ii]]          = cur_obj
+      } else {
+        roc_pl[[ii]] = smooth(roc_pl[[ii]],n = 500)
+      }
+    }
+    
+    # print the median of acc, sens, spec
+    acc_sens_spec       = data.frame(accs,sens,spec,auc)
+    acc_sens_spec_p     = data.frame(accs_p,sens_p,spec_p,auc_p)
+    med_ac_se_sp        = lapply(acc_sens_spec,FUN=mean)
+    med_ac_se_sp_np_ci  = lapply(acc_sens_spec,FUN=agk.boot.ci,
+                                 cur_fun=mean,R=3000,lower=0.025,upper=0.975)
+    med_ac_se_sp_npp_ci = lapply(acc_sens_spec_p,FUN=agk.boot.ci,
+                                 cur_fun=mean,R=3000,lower=0.025,upper=0.975)
+    disp('Mean accuracy, sensitivity, specificity across CV rounds.')
+    print(med_ac_se_sp)
+    # acc
+    diffs        = accs - accs_p
+    cur_p        = agk.density_p.c(diffs,0)
+    disp("Probability that permuted and non-permuted CV'd accuracy of algorithms are the same.")
+    print(cur_p)
+    # sens
+    diffs        = sens - sens_p
+    cur_p        = agk.density_p.c(diffs,0)
+    disp("Probability that permuted and non-permuted CV'd sensitivity of algorithms are the same.")
+    print(cur_p)
+    # spec
+    diffs        = spec - spec_p
+    cur_p        = agk.density_p(diffs,0)
+    disp("Probability that permuted and non-permuted CV'd specificity of algorithms are the same.")
+    print(cur_p)
+    # auc
+    diffs        = auc - auc_p
+    cur_p        = agk.density_p.c(diffs,0)
+    disp("Probability that permuted and non-permuted CV'd smoothed ROC-AUC of algorithms are the same.")
+    print(cur_p)
+    
+    # ROC curve (get all the coordinates)
+    # not perm
+    specificities  = t(as.matrix(rocl[[1]]$specificities))
+    sensitivities  = t(as.matrix(rocl[[1]]$sensitivities))
+    
+    # perm
+    specificitiesl = t(as.matrix(roc_pl[[1]]$specificities))
+    sensitivitiesl = t(as.matrix(roc_pl[[1]]$sensitivities))
+    
+    # get all the ROC curves
+    for (ii in 2:length(rocl)) {
+      if (length(rocl[[ii]]$specificities) != length(specificities[ii-1,])) {
+        stop('length not same!')
+      }
+      
+      if (length(roc_pl[[ii]]$specificities) != length(specificitiesl[ii-1,])) {
+        stop('length not same!')
+      }
+      
+      specificities = rbind(specificities,t(as.matrix(rocl[[ii]]$specificities)))
+      sensitivities = rbind(sensitivities,t(as.matrix(rocl[[ii]]$sensitivities)))
+      
+      specificitiesl = rbind(specificitiesl,t(as.matrix(roc_pl[[ii]]$specificities)))
+      sensitivitiesl = rbind(sensitivitiesl,t(as.matrix(roc_pl[[ii]]$sensitivities)))
+    }
+    
+    # get CI
+    specificities  = as.data.frame(specificities)
+    sensitivities  = as.data.frame(sensitivities)
+    specificitiesl = as.data.frame(specificitiesl)
+    sensitivitiesl = as.data.frame(sensitivitiesl)
+    #spec_min_specl = specificities - specificitiesl
+    #sens_min_sensl = sensitivities - sensitivitiesl
+    
+    # spec_mci  = lapply(specificities,FUN = agk.boot.ci.c,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
+    # sens_mci  = lapply(sensitivities,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
+    # specl_mci = lapply(specificitiesl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
+    # sensl_mci = lapply(sensitivitiesl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
+    
+    # not ci of mean but mean and percentiles over CV rounds
+    agk.mean.quantile.c = cmpfun(agk.mean.quantile)
+    spec_mci  = lapply(specificities,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
+    sens_mci  = lapply(sensitivities,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
+    specl_mci = lapply(specificitiesl,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
+    sensl_mci = lapply(sensitivitiesl,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
+    
+    # # subtract the permuted version
+    # spemspel_mci = lapply(spec_min_specl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
+    # senmsenl_mci = lapply(sens_min_sensl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
+    
+    spec_mci     = as.data.frame(matrix(unlist(spec_mci),ncol = 3,byrow = T))
+    sens_mci     = as.data.frame(matrix(unlist(sens_mci),ncol = 3,byrow = T))
+    specl_mci    = as.data.frame(matrix(unlist(specl_mci),ncol = 3,byrow = T))
+    sensl_mci    = as.data.frame(matrix(unlist(sensl_mci),ncol = 3,byrow = T))
+    # spemspel_mci = as.data.frame(matrix(unlist(spemspel_mci),ncol = 3,byrow = T))
+    # senmsenl_mci = as.data.frame(matrix(unlist(spemspel_mci),ncol = 3,byrow = T))
+    
+    # plot
+    # real
+    plot(spec_mci$V1[order(spec_mci$V1)],sens_mci$V1[order(spec_mci$V1)],xlim = c(1,0),type='l',lty=1,
+         xlab = 'specificity', ylab = 'sensitivity',col='blue',lwd=4)
+    lines(spec_mci$V2[order(spec_mci$V1)],sens_mci$V2[order(spec_mci$V1)],xlim = c(1,0),col='blue',lty=1)
+    lines(spec_mci$V3[order(spec_mci$V1)],sens_mci$V3[order(spec_mci$V1)],xlim = c(1,0),col='blue',lty=1)
+    
+    #perm
+    lines(specl_mci$V1[order(specl_mci$V1)],sensl_mci$V1[order(specl_mci$V1)],xlim = c(1,0),type='l',lty=2,lwd=4,col='red')
+    lines(specl_mci$V2[order(spec_mci$V1)],sensl_mci$V2[order(spec_mci$V1)],xlim = c(1,0),col='red',lty=2)
+    lines(specl_mci$V3[order(spec_mci$V1)],sensl_mci$V3[order(spec_mci$V1)],xlim = c(1,0),col='red',lty=2)
+    
+    abline(a=1,b=-1,lty=4,lwd=2)
+    title('Receiver-Operating-Curve for Behavioral Classifier')
+    legend(1.02, 1.02, c("ROC of classifier with 95% bounds", "ROC of control classifier with 95% bounds", "hypothetical null"), col = c('blue', 'red', 'black'),
+           text.col = "black", lty = c(1, 2, 4),
+           merge = TRUE, bg = "gray90")
+    
   }
   
-  # make new ROC objects
-  for (ii in 1:length(rocl)) {
-    # non_permuted
-    predictor  = rocl[[ii]]$original.predictor
-    response   = rocl[[ii]]$original.response
-    response   = ifelse(response == 'PG',1,0)
-    predictor  = agk.scale_range(predictor,0,1)
-    rocl[[ii]] = roc(response,predictor)
-    auc[ii]    = auc(rocl[[ii]])
-    rocl[[ii]] = smooth( rocl[[ii]],n = 500)
+  if (!do_report_feat_only) {
+    # winning model frequencies
+    disp('These models have been chosen:')
+    cur_tab = table(cur_mod_sel_nooCV)
+    print(cur_tab)
     
-    # permuted (or control model)
-    predictor    = roc_pl[[ii]]$original.predictor
-    response     = roc_pl[[ii]]$original.response
-    response     = ifelse(response == 'PG',1,0)
-    predictor    = agk.scale_range(predictor,0,1)
-    roc_pl[[ii]] = roc(response,predictor)
-    auc_p[ii]    = auc(roc_pl[[ii]])
+    # barplot the winning models
+    # prep data frame
+    cur_mod_sel_nooCV_freq  = as.data.frame(table(cur_mod_sel_nooCV))
     
-    if (var(roc_pl[[ii]]$original.predictor) == 0) {
-      cur_obj = list()
-      cur_obj$sensitivities = seq(0,1,length.out = 502)
-      cur_obj$specificities = seq(0,1,length.out = 502)
-      roc_pl[[ii]]          = cur_obj
-    } else {
-      roc_pl[[ii]] = smooth(roc_pl[[ii]],n = 500)
+    # get complexity score
+    complexity = data.frame(names(fm),unlist(lapply(fm,length)))
+    names(complexity) = c('modname','complexity')
+    
+    all_models_num          = as.character(1:length(fm))
+    all_models_str          = names(fm)
+    # add models that have 0 freq
+    cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV = as.character(cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV)
+    for (ii in 1:length(all_models_str)) {
+      if (!all_models_str[ii] %in% cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV) {
+        cur_mod_sel_nooCV_freq = rbind(cur_mod_sel_nooCV_freq,c(all_models_str[ii],0))
+      }
+    }
+    
+    # transform to numeric
+    cur_mod_sel_nooCV_freq$Freq = as.numeric(cur_mod_sel_nooCV_freq$Freq)
+    
+    # get complexity score
+    cur_mod_sel_nooCV_freq$complexity = as.numeric(agk.recode.c(cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV,complexity$modname,complexity$complexity))
+    
+    # sort
+    cur_mod_sel_nooCV_freq = cur_mod_sel_nooCV_freq[order(cur_mod_sel_nooCV_freq$complexity),]
+    # get the model names
+    names_models_orig               = names(fm)
+    cur_mod_sel_nooCV_freq$modnames = cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV
+    #cur_mod_sel_nooCV_freq$modnames = names_models_orig[as.numeric(cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV)]
+    #cur_mod_sel_nooCV_freq$modnames = agk.recode.c(cur_mod_sel_nooCV_freq$modnames,names_models_orig,names_models)
+    #cur_mod_sel_nooCV_freq$modnames = factor(cur_mod_sel_nooCV_freq$modnames, levels = cur_mod_sel_nooCV_freq$modnames)
+    cur_mod_sel_nooCV_freq$Freq     = as.numeric(cur_mod_sel_nooCV_freq$Freq)
+    
+    # fixing the order by complexity, which we prepped above
+    cur_mod_sel_nooCV_freq$modnames = factor(cur_mod_sel_nooCV_freq$modnames, levels = cur_mod_sel_nooCV_freq$modnames)
+    
+    p = ggplot(data = cur_mod_sel_nooCV_freq, aes(modnames,Freq))
+    p = p+geom_bar(stat="identity") + ylab("Frequency model selected") + xlab('models ordered by model complexity')
+    p = p + coord_cartesian(ylim=c(0,700))
+    p = p + ggtitle(paste0("Frequency of model selection in ",
+                           sum(cur_mod_sel_nooCV_freq$Freq)," cross validation rounds"))
+    p = p + theme(text = element_text(size=20),
+                  axis.text.x = element_text(angle=90, hjust=1)) 
+    p = p + coord_flip()
+    print(p)
+    
+    # get the most often chosen model
+    if (!do_report_feat_only) {
+      if (length(which(max(cur_tab) == cur_tab)) > 1) {
+        stop('At least two models won equally often.')
+      }
+      winning_mod = names(cur_tab)[which(max(cur_tab) == cur_tab)]
     }
   }
   
-  # print the median of acc, sens, spec
-  acc_sens_spec       = data.frame(accs,sens,spec,auc)
-  acc_sens_spec_p     = data.frame(accs_p,sens_p,spec_p,auc_p)
-  med_ac_se_sp        = lapply(acc_sens_spec,FUN=mean)
-  med_ac_se_sp_np_ci  = lapply(acc_sens_spec,FUN=agk.boot.ci,
-                               cur_fun=mean,R=3000,lower=0.025,upper=0.975)
-  med_ac_se_sp_npp_ci = lapply(acc_sens_spec_p,FUN=agk.boot.ci,
-                               cur_fun=mean,R=3000,lower=0.025,upper=0.975)
-  disp('Mean accuracy, sensitivity, specificity across CV rounds.')
-  print(med_ac_se_sp)
-  # acc
-  diffs        = accs - accs_p
-  cur_p        = agk.density_p.c(diffs,0)
-  disp("Probability that permuted and non-permuted CV'd accuracy of algorithms are the same.")
-  print(cur_p)
-  # sens
-  diffs        = sens - sens_p
-  cur_p        = agk.density_p.c(diffs,0)
-  disp("Probability that permuted and non-permuted CV'd sensitivity of algorithms are the same.")
-  print(cur_p)
-  # spec
-  diffs        = spec - spec_p
-  cur_p        = agk.density_p(diffs,0)
-  disp("Probability that permuted and non-permuted CV'd specificity of algorithms are the same.")
-  print(cur_p)
-  # auc
-  diffs        = auc - auc_p
-  cur_p        = agk.density_p.c(diffs,0)
-  disp("Probability that permuted and non-permuted CV'd smoothed ROC-AUC of algorithms are the same.")
-  print(cur_p)
-  
-  # ROC curve (get all the coordinates)
-  # not perm
-  specificities  = t(as.matrix(rocl[[1]]$specificities))
-  sensitivities  = t(as.matrix(rocl[[1]]$sensitivities))
-  
-  # perm
-  specificitiesl = t(as.matrix(roc_pl[[1]]$specificities))
-  sensitivitiesl = t(as.matrix(roc_pl[[1]]$sensitivities))
-  
-  # get all the ROC curves
-  for (ii in 2:length(rocl)) {
-    if (length(rocl[[ii]]$specificities) != length(specificities[ii-1,])) {
-      stop('length not same!')
-    }
-    
-    if (length(roc_pl[[ii]]$specificities) != length(specificitiesl[ii-1,])) {
-      stop('length not same!')
-    }
-    
-    specificities = rbind(specificities,t(as.matrix(rocl[[ii]]$specificities)))
-    sensitivities = rbind(sensitivities,t(as.matrix(rocl[[ii]]$sensitivities)))
-    
-    specificitiesl = rbind(specificitiesl,t(as.matrix(roc_pl[[ii]]$specificities)))
-    sensitivitiesl = rbind(sensitivitiesl,t(as.matrix(roc_pl[[ii]]$sensitivities)))
+  if (do_report_feat_only) {
+    # winning model beta values with CIs
+    win_mods_distr_c = list_winning_model_c_nooCV_op
+    win_mods_distr_l = list_winning_model_l_nooCV_op
+  } else {
+    # winning model beta values with CIs
+    win_mods_distr_c = list_winning_model_c_nooCV[which(winning_mod == cur_mod_sel_nooCV)]
+    win_mods_distr_l = list_winning_model_l_nooCV[which(winning_mod == cur_mod_sel_nooCV)]
   }
-  
-  # get CI
-  specificities  = as.data.frame(specificities)
-  sensitivities  = as.data.frame(sensitivities)
-  specificitiesl = as.data.frame(specificitiesl)
-  sensitivitiesl = as.data.frame(sensitivitiesl)
-  #spec_min_specl = specificities - specificitiesl
-  #sens_min_sensl = sensitivities - sensitivitiesl
-  
-  # spec_mci  = lapply(specificities,FUN = agk.boot.ci.c,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-  # sens_mci  = lapply(sensitivities,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-  # specl_mci = lapply(specificitiesl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-  # sensl_mci = lapply(sensitivitiesl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-  
-  # not ci of mean but mean and percentiles over CV rounds
-  agk.mean.quantile.c = cmpfun(agk.mean.quantile)
-  spec_mci  = lapply(specificities,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
-  sens_mci  = lapply(sensitivities,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
-  specl_mci = lapply(specificitiesl,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
-  sensl_mci = lapply(sensitivitiesl,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
-  
-  # # subtract the permuted version
-  # spemspel_mci = lapply(spec_min_specl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-  # senmsenl_mci = lapply(sens_min_sensl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-  
-  spec_mci     = as.data.frame(matrix(unlist(spec_mci),ncol = 3,byrow = T))
-  sens_mci     = as.data.frame(matrix(unlist(sens_mci),ncol = 3,byrow = T))
-  specl_mci    = as.data.frame(matrix(unlist(specl_mci),ncol = 3,byrow = T))
-  sensl_mci    = as.data.frame(matrix(unlist(sensl_mci),ncol = 3,byrow = T))
-  # spemspel_mci = as.data.frame(matrix(unlist(spemspel_mci),ncol = 3,byrow = T))
-  # senmsenl_mci = as.data.frame(matrix(unlist(spemspel_mci),ncol = 3,byrow = T))
-  
-  # plot
-  # real
-  plot(spec_mci$V1[order(spec_mci$V1)],sens_mci$V1[order(spec_mci$V1)],xlim = c(1,0),type='l',lty=1,
-       xlab = 'specificity', ylab = 'sensitivity',col='blue',lwd=4)
-  lines(spec_mci$V2[order(spec_mci$V1)],sens_mci$V2[order(spec_mci$V1)],xlim = c(1,0),col='blue',lty=1)
-  lines(spec_mci$V3[order(spec_mci$V1)],sens_mci$V3[order(spec_mci$V1)],xlim = c(1,0),col='blue',lty=1)
-  
-  #perm
-  lines(specl_mci$V1[order(specl_mci$V1)],sensl_mci$V1[order(specl_mci$V1)],xlim = c(1,0),type='l',lty=2,lwd=4,col='red')
-  lines(specl_mci$V2[order(spec_mci$V1)],sensl_mci$V2[order(spec_mci$V1)],xlim = c(1,0),col='red',lty=2)
-  lines(specl_mci$V3[order(spec_mci$V1)],sensl_mci$V3[order(spec_mci$V1)],xlim = c(1,0),col='red',lty=2)
-  
-  abline(a=1,b=-1,lty=4,lwd=2)
-  title('Receiver-Operating-Curve for Behavioral Classifier')
-  legend(1.02, 1.02, c("ROC of classifier with 95% bounds", "ROC of control classifier with 95% bounds", "hypothetical null"), col = c('blue', 'red', 'black'),
-         text.col = "black", lty = c(1, 2, 4),
-         merge = TRUE, bg = "gray90")
-  
-  # winning model frequencies
-  disp('These models have been chosen:')
-  cur_tab = table(cur_mod_sel_nooCV)
-  print(cur_tab)
-  
-  # barplot the winning models
-  # prep data frame
-  cur_mod_sel_nooCV_freq  = as.data.frame(table(cur_mod_sel_nooCV))
-  
-  # get complexity score
-  complexity = data.frame(names(fm),unlist(lapply(fm,length)))
-  names(complexity) = c('modname','complexity')
-  
-  all_models_num          = as.character(1:length(fm))
-  all_models_str          = names(fm)
-  # add models that have 0 freq
-  cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV = as.character(cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV)
-  for (ii in 1:length(all_models_str)) {
-    if (!all_models_str[ii] %in% cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV) {
-      cur_mod_sel_nooCV_freq = rbind(cur_mod_sel_nooCV_freq,c(all_models_str[ii],0))
-    }
-  }
-  
-  # transform to numeric
-  cur_mod_sel_nooCV_freq$Freq = as.numeric(cur_mod_sel_nooCV_freq$Freq)
-  
-  # get complexity score
-  cur_mod_sel_nooCV_freq$complexity = as.numeric(agk.recode.c(cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV,complexity$modname,complexity$complexity))
-  
-  # sort
-  cur_mod_sel_nooCV_freq = cur_mod_sel_nooCV_freq[order(cur_mod_sel_nooCV_freq$complexity),]
-  # get the model names
-  names_models_orig               = names(fm)
-  cur_mod_sel_nooCV_freq$modnames = cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV
-  #cur_mod_sel_nooCV_freq$modnames = names_models_orig[as.numeric(cur_mod_sel_nooCV_freq$cur_mod_sel_nooCV)]
-  #cur_mod_sel_nooCV_freq$modnames = agk.recode.c(cur_mod_sel_nooCV_freq$modnames,names_models_orig,names_models)
-  #cur_mod_sel_nooCV_freq$modnames = factor(cur_mod_sel_nooCV_freq$modnames, levels = cur_mod_sel_nooCV_freq$modnames)
-  cur_mod_sel_nooCV_freq$Freq     = as.numeric(cur_mod_sel_nooCV_freq$Freq)
-  
-  # fixing the order by complexity, which we prepped above
-  cur_mod_sel_nooCV_freq$modnames = factor(cur_mod_sel_nooCV_freq$modnames, levels = cur_mod_sel_nooCV_freq$modnames)
-  
-  p = ggplot(data = cur_mod_sel_nooCV_freq, aes(modnames,Freq))
-  p = p+geom_bar(stat="identity") + ylab("Frequency model selected") + xlab('models ordered by model complexity')
-  p = p + coord_cartesian(ylim=c(0,700))
-  p = p + ggtitle(paste0("Frequency of model selection in ",
-                         sum(cur_mod_sel_nooCV_freq$Freq)," cross validation rounds"))
-  p = p + theme(text = element_text(size=20),
-                axis.text.x = element_text(angle=90, hjust=1)) 
-  p = p + coord_flip()
-  print(p)
-  
-  # get the most often chosen model
-  if (length(which(max(cur_tab) == cur_tab)) > 1) {
-    stop('At least two models won equally often.')
-  }
-  winning_mod = names(cur_tab)[which(max(cur_tab) == cur_tab)]
-  
-  # winning model beta values with CIs
-  win_mods_distr_c = list_winning_model_c_nooCV[which(winning_mod == cur_mod_sel_nooCV)]
-  win_mods_distr_l = list_winning_model_l_nooCV[which(winning_mod == cur_mod_sel_nooCV)]
   
   # make a data frame of it:
   win_mod_coefs        = as.matrix(win_mods_distr_c[[1]])
@@ -938,7 +953,6 @@ if (do_report_no_added_feat | do_report_with_added_feat) {
   ci_res$coef[ci_res$coef == 'Intercept']    = 'Int_behav_model'
   ci_res$coef[ci_res$coef == 'X.Intercept.'] = 'Int_classifier'
   
-
   p = ggplot(data = ci_res, aes(coef,mean))
   p = p+geom_bar(stat="identity")
   p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
@@ -948,6 +962,24 @@ if (do_report_no_added_feat | do_report_with_added_feat) {
   p = p + theme(text = element_text(size=20),
                 axis.text.x = element_text(angle=90, hjust=1)) 
   print(p)
+  
+  # reducing a bit the size
+  if (dim(ci_res)[1] > 20) {
+    message('displaying a reduced set')
+    ci_res_red = ci_res[abs(ci_res$mean) > 1,]
+    p = ggplot(data = ci_res_red, aes(coef,mean))
+    p = p+geom_bar(stat="identity")
+    p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
+                          width = 0) + ylab("mean (95% CI over CV rounds)\n")
+    
+    p <- p + ggtitle("Estimated classification weights of winning model with CIs")
+    p = p + theme(text = element_text(size=20),
+                  axis.text.x = element_text(angle=90, hjust=1)) 
+    print(p)
+  }
+  
+ 
+  
 }
 
 # REPORTING PHYS ONLY =========================================================
@@ -1125,12 +1157,15 @@ if (do_report_feat_only) {
          text.col = "black", lty = c(1, 2, 4),
          merge = TRUE, bg = "gray90")
   
-  
-  
-  
-  # winning model beta values with CIs
-  win_mods_distr_c = list_winning_model_c_nooCV_op
-  win_mods_distr_l = list_winning_model_l_nooCV_op
+
+  if (do_report_feat_only) {
+    # winning model beta values with CIs
+    win_mods_distr_c = list_winning_model_c_nooCV_op
+    win_mods_distr_l = list_winning_model_l_nooCV_op
+  } else {
+    
+  }
+
   
   
   # make a data frame of it:

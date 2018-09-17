@@ -105,6 +105,10 @@ if (reduce_fMRI_data & add_cr_pp_ma & which_study == 'MRT') {
   cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._Acc',names(cr_agg_pp_r),invert = T)]
   cr_agg_pp_r = cr_agg_pp_r[grep('.*Caudate$',names(cr_agg_pp_r),invert = T)]
   cr_agg_pp_r = cr_agg_pp_r[grep('.*Putamen$',names(cr_agg_pp_r),invert = T)]
+  
+  # take out PPI StrAs
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs',names(cr_agg_pp_r),invert = T)]
+  
   cr_agg_pp   = cr_agg_pp_r
 }
 

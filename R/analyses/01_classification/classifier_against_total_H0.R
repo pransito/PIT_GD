@@ -17,7 +17,7 @@ runs0 = 2000
 
 # under 0
 # pooled
-# updated for the 28 vs. 28 case
+# updated for the 30 vs. 30 case
 all_aucs  = c()
 all_aucsl = list()
 all_accs  = c()

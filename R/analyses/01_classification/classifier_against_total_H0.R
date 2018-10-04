@@ -13,7 +13,7 @@ get.truth.4 = function() {
 }
 
 # set runs
-runs0 = 2000
+runs0 = 3000
 
 # under 0
 # pooled
@@ -75,6 +75,10 @@ setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_c
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/55')
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/20')
 setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/40')
+setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/41')
+setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1020')
+setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1022')
+setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1023')
 e = new.env()
 load('MRT_predGrp1_rounds_wio_onlyPhys_no_perm.RData',envir = e)
 
@@ -104,6 +108,27 @@ p = ggplot(cur_dat,aes(x=value, fill=variable)) + geom_density(alpha=0.25)
 p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for different classifiers compared to random classifier')
 p = p + geom_vline(aes(xintercept = mean_auc),colour = 'green',size= 1.5)
 print(p)
+
+## density plots with two densities ============================================
+# only auc but multiple classifiers
+# old mean_auc = 0.6475 (where is this from?)
+#cur_dat_be = data.frame(H_0 = all_aucs,mean_auc = auc,classifier = 'prev_behav_glmnet')
+#cur_dat_sv = data.frame(H_0 = all_aucs,mean_auc = mean(real_aucs_svm),classifier = 'MRI_svm')
+
+Ha_auc      = unlist(lapply(e$CV_res_list_op,FUN = cur_fun_auc))
+Ha_auc      = rep_len(Ha_auc,length.out = length(all_aucs))
+cur_dat_gl  = data.frame(H0 = all_aucs,Ha_auc = Ha_auc,classifier = 'MRI_glmnet')
+
+
+cur_dat              = rbind(cur_dat_gl) #rbind(cur_dat_be,cur_dat_gl,cur_dat_sv)
+cur_dat              = melt(cur_dat,id.vars = c('classifier'))
+#cur_dat_H_0          = subset(cur_dat,variable == 'H_0')
+#cur_dat_H_0$mean_auc = cur_dat$value[cur_dat$variable == 'mean_auc']
+#cur_dat              = cur_dat_H_0
+p = ggplot(cur_dat,aes(x=value, fill=variable)) + geom_density(alpha=0.25)
+p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for MRI glmnet classifier compared to random classifier')
+p = p + geom_vline(aes(xintercept = mean(auc)),colour = 'green',size= 1.5)
+print(p+theme_bw())
 
 ## test glmnet
 1-agk.density_p.c(all_aucs,auc)

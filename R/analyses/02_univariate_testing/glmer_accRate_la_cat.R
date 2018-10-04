@@ -10,9 +10,12 @@
 
 # PREPARATION FOR FOREIGN RUN =================================================
 rm(list=ls())
-root_wd = 'C:/Users/genaucka/Google Drive/Library/R/PDT/R_GD_PIT'
+#root_wd = 'C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses'
+root_wd = 'E:/Google Drive/Library/01_Projects/PIT_GD/R/analyses'
 setwd(root_wd)
 load('.RData')
+setwd('02_univariate_testing/')
+root_wd = getwd()
 
 # LIBRARIES ===================================================================
 agk.load.ifnot.install("psych")
@@ -96,12 +99,12 @@ if (doFitGlmer) {
 if (doFitGlmer) {
   # with | cat
   modla_00  = glmer(accept_reject ~ 1 + (1|subject) + (1|stim) + (1|cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
-  modla_01  = glmer(accept_reject ~ gain + loss + ed_abs + (gain + loss + ed_abs|subject) + (gain + loss + ed_abs|stim) + (gain + loss + ed_abs|cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
-  modla_0g  = glmer(accept_reject ~ (gain + loss + ed_abs)*HCPG + (gain + loss + ed_abs|subject) + (gain + loss + ed_abs|stim)  + (gain + loss + ed_abs|cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
-  modla_c0  = glmer(accept_reject ~ (gain + loss + ed_abs) + cat + (gain + loss + ed_abs|subject) + (gain + loss + ed_abs|stim) + (gain + loss + ed_abs|cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
-  modla_cg  = glmer(accept_reject ~ (gain + loss + ed_abs)*HCPG + cat*HCPG + (gain + loss + ed_abs|subject) + (gain + loss + ed_abs|stim)  + (gain + loss + ed_abs|cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
-  modla_cgi = glmer(accept_reject ~ (gain + loss + ed_abs)*cat*HCPG + ((gain + loss + ed_abs)*cat|subject) + (gain + loss + ed_abs|stim),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
-  modla_ci  = glmer(accept_reject ~ (gain + loss + ed_abs)*cat + ((gain + loss + ed_abs)*cat|subject) + (gain + loss + ed_abs|stim),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
+  modla_01  = glmer(accept_reject ~ gain + loss  + (gain + loss |subject) + (gain + loss |stim) + (gain + loss |cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
+  modla_0g  = glmer(accept_reject ~ (gain + loss )*HCPG + (gain + loss |subject) + (gain + loss |stim)  + (gain + loss |cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
+  modla_c0  = glmer(accept_reject ~ (gain + loss ) + cat + (gain + loss + cat|subject) + (gain + loss |stim) + (gain + loss |cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
+  modla_cg  = glmer(accept_reject ~ (gain + loss )*HCPG + cat*HCPG + (gain + loss + cat |subject) + (gain + loss |stim)  + (gain + loss |cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
+  modla_cgi = glmer(accept_reject ~ (gain + loss )*cat*HCPG + ((gain + loss )*cat|subject) + (gain + loss |stim),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
+  modla_ci  = glmer(accept_reject ~ (gain + loss )*cat + ((gain + loss )*cat|subject) + (gain + loss |stim),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
   
   # reformulate the cgi model to make permutation test against cg model possible
   cur_mm        = model.matrix(accept_reject ~ (gain + loss + ed_abs)*cat*HCPG,data = data_pdt)
@@ -159,7 +162,8 @@ anova(moda_00,moda_01b)
 
 ## la overall #################################################################
 # stats glmer
-anova(modla_00,modla_01,modla_c0,modla_0g,modla_cg,modla_cgi)
+anova(modla_00,modla_01,modla_0g,modla_cg,modla_cgi)
+anova(modla_00,modla_01,modla_0g)
 anova(modla_00nc,modla_01nc,modla_0gnc,modla_cg)
 
 # bootstrap
@@ -275,6 +279,13 @@ for (nn in 1:length(nulls)) {
   disp(paste('Permutation test group for:',ofvars[nn]))
   print(agk.density_p(nulls[[nn]],obs_fixef[nn]*dirs[nn]))
 }
+
+# just la and using the fixef of the model
+la_HC     = -bl_HC/bg_HC
+la_PG     = -bl_PG/bg_PG
+la_HCgrPG = la_HC-la_PG 
+obs_e     = get_la_fixef_pdt(modla_0g)
+agk.density_p(la_HCgrPG,obs_e['x_la_HCgrPG'],type = 'greater')
 
 # overall permuation test
 disp(paste('Permutation test group for:','mse'))

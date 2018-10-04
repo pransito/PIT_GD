@@ -86,33 +86,31 @@ noout_cv_wiaddfeat_noperm = 0 # adding physio
 # only peripheral-physiological / MRI
 outer_cv_addfeaton_noperm = 0 # Ha only, i.e. physio/MRI  
 outer_cv_addfeaton_wiperm = 0 # with permutation
-noout_cv_addfeaton_noperm = 1 # to get the complete model 
+noout_cv_addfeaton_noperm = 0 # to get the complete model 
 
 outer_cv_c_model_noperm   = 0 # control model/null-model for classification
 
 # what to report
-do_report                 = 1
+do_report                 = 0
 do_report_no_added_feat   = 0
 do_report_with_added_feat = 0
-do_report_feat_only       = 1
+do_report_feat_only       = 0
 
 # PARAMETERS TO SET: General ==================================================
 # number of runs to get the CV results distribution, 1000 recommended
-runs                  = 40 
-# physio pred: 300 from home; current correct one for behav: 1010; 1011: for MRI but without control; 1012 MRI with control vars.
-# 200 for MRI: is the classifier from v14; 201 is with cleaned variables BIC degree 2; 202 with cleaned AIC degree 2; 45 cleaning AIC, degree is 1 [rob always F]
-# 46 cleaning BIC, degree 1; 50: no cleaning
-# BUT I NEED NO CONTROL VARIABLES IN THE PREDICTORS
-# 50 is no cleaning and no control variabeles
-# 51 is cleaning with BIC and degree 1, no control variables
-# 52 is clenaing with AIC and degree 1, no control variables [yet to do] [ngm model on ss fmri level]
-# 53 is no cleaning, no control variables [val with categories on ss fmri level]
-# 54 is no cleaning, no control variables [glc on ss fmri level]
-# 55 is no cleaning, no control variables [glc on ss fmri level] [28 vs. 28 sample] [no means in fmri]
-# 15 is no cleaning, no control variables [glc on ss fmri level] [27 vs. 27 sample, matched] [with means in fmri]
+runs                  = 1023 
+# physio pred: 300 from home; current correct one for behav: 1010;
+# 1020: fMRI predictors with AIC cleaning
+# 1021: fMRI predictor with BIC cleaning
+# 1022: fMRI predictor with no cleaning
+
+# 1023: fMRI predictors with AIC cleaning no DS
+# 1024: fMRI predictor with BIC cleaning no DS
+# 1025: fMRI predictor with no cleaning no DS
+
 
 # set some seed to ensure reproducability
-des_seed              = 990 # 990 normally (combine 90 runs with 10 runs)
+des_seed              = 6993 # 990 normally (combine 90 runs with 10 runs)
 # run the models (for param extraction in exp)
 est_models            = 1
 # ridge regression binomial;
@@ -147,7 +145,7 @@ strat_innerCV         = T
 c_mod                 = F
 # for report use permut (F) or c_mod?
 c_mod_report          = T
-# Any reporting of p-values against null?
+# Any reporting of p-values against null? Set to F if you do that somewhere else.
 report_CV_p           = F
 # all alphas: then no model selection with just ridge but complete elastic net 
 # for all models immediately
@@ -955,6 +953,16 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
   ci_res$coef[ci_res$coef == 'Intercept']    = 'Int_behav_model'
   ci_res$coef[ci_res$coef == 'X.Intercept.'] = 'Int_classifier'
   
+  # names simpler:
+  ci_res$coef = gsub('SS__grp01_noCov_','',ci_res$coef)
+  ci_res$coef = gsub('SS__','',ci_res$coef)
+  ci_res$coef = gsub('PicGamOnxAcc','PIT',ci_res$coef)
+  ci_res$coef = gsub('PicGamOnxacc','PIT',ci_res$coef)
+  ci_res$coef = gsub('ROI_LR_','',ci_res$coef)
+  ci_res$coef = gsub('_LR','',ci_res$coef)
+  ci_res$coef = gsub('noCov_PPI_','',ci_res$coef)
+  ci_res$coef = gsub('X','x',ci_res$coef)
+  
   p = ggplot(data = ci_res, aes(coef,mean))
   p = p+geom_bar(stat="identity")
   p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
@@ -965,33 +973,64 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
                 axis.text.x = element_text(angle=90, hjust=1)) 
   print(p)
   
-  # reducing a bit the size
-  if (dim(ci_res)[1] > 20) {
-    message('displaying a reduced set')
-    message('reducing the names')
-    ci_res_red = ci_res[abs(ci_res$mean) > 1,]
-    
-    # names simpler:
-    ci_res_red$coef = gsub('SS__grp01_noCov_','',ci_res_red$coef)
-    ci_res_red$coef = gsub('SS__','',ci_res_red$coef)
-    ci_res_red$coef = gsub('PicGamOnxAcc','PIT',ci_res_red$coef)
-    ci_res_red$coef = gsub('PicGamOnxacc','PIT',ci_res_red$coef)
-    ci_res_red$coef = gsub('ROI_LR_','',ci_res_red$coef)
-    ci_res_red$coef = gsub('_LR','',ci_res_red$coef)
-    ci_res_red$coef = gsub('noCov_PPI_','',ci_res_red$coef)
-    ci_res_red$coef = gsub('X','x',ci_res_red$coef)
-    
-    p = ggplot(data = ci_res_red, aes(coef,mean))
-    p = p+geom_bar(stat="identity")
-    p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
-                          width = 0) + ylab("mean (95% CI over CV rounds)\n")
-    
-    p <- p + ggtitle("Estimated regression weights with CIs")
-    p = p + theme(text = element_text(size=20),
-                  axis.text.x = element_text(angle=90, hjust=1)) 
-    print(p)
-  }
+  # giving a grouped overview
+  grouping                                                  = rep(NA,length(ci_res$coef))
+  grouping[grep('^Pic',ci_res$coef)]                        = 'cue_reactivity'
+  grouping[grep('^PPI_Amy.*OrG',ci_res$coef)]               = 'Amy_to_OFC'
+  grouping[grep('^PPI_Amy.*StrAsCaud',ci_res$coef)]         = 'Amy_to_Striatum'
+  grouping[grep('^PPI_Amy.*StrAsPut',ci_res$coef)]          = 'Amy_to_Striatum'
+  grouping[grep('^PPI_Amy.*Acc',ci_res$coef)]               = 'Amy_to_Striatum'
+  grouping[grep('^PIT',ci_res$coef)]                        = 'PIT'
+  grouping[grep('^PPI_Acc_',ci_res$coef)]                   = 'Accumbens_to_Str_Amy'
+  ci_res$coef[ci_res$coef == 'x.grp_classifier_intercept.'] = 'Classifier_Icpt'
+  grouping[grep('Classifier_Icpt',ci_res$coef)]             = 'cue_reactivity'
   
- 
+  ci_res$grouping = factor(grouping,levels = c('cue_reactivity','PIT','Amy_to_OFC','Amy_to_Striatum','Accumbens_to_Str_Amy'),
+                           labels = c('cue reactivity','PIT','PPI PIT seed Amygdala to OFC','PPI PIT seed Amygdala to Accumbens','PPI PIT seed Accumbens to Amygdala'))
+  
+  # shorter names even
+  ci_res$coef = gsub('Accumbens','Acc',ci_res$coef)
+  ci_res$coef = gsub('Amygdala','Amy',ci_res$coef)
+  ci_res$coef = gsub('PPI','c',ci_res$coef)
+  ci_res$coef = gsub('PITx','PIT',ci_res$coef)
+  ci_res$coef = gsub('c_','c',ci_res$coef)
+  ci_res$coef = gsub('StrAso','StrAs',ci_res$coef)
+  ci_res$coef = gsub('StrAs','',ci_res$coef)
+  ci_res$coef = gsub('ROI_','',ci_res$coef)
+  ci_res$coef = gsub('Picgam_','gam_',ci_res$coef)
+  ci_res$coef = gsub('Picneg_','neg_',ci_res$coef)
+  ci_res$coef = gsub('Picpos_','pos_',ci_res$coef)
+  ci_res$coef = gsub('^PITpos_','pos_',ci_res$coef)
+  ci_res$coef = gsub('^PITneg_','neg_',ci_res$coef)
+  ci_res$coef = gsub('^PITgam_','gam_',ci_res$coef)
+  ci_res$coef = gsub('^cAmy','Amy',ci_res$coef)
+  ci_res$coef = gsub('^cAcc','Acc',ci_res$coef)
+  ci_res$coef = gsub('^AccPITgam','Acc_PITgam',ci_res$coef)
+  ci_res$coef = gsub('^AccPITneg','Acc_PITneg',ci_res$coef)
+  ci_res$coef = gsub('^AccPITpos','Acc_PITpos',ci_res$coef)
+  
+  
+  # plotting grouped
+  message('displaying the set grouped')
+  #ci_res_red = ci_res[abs(ci_res$mean) > 1,]
+  ci_res_red = ci_res
+  
+  p = ggplot(data = ci_res_red, aes(coef,mean))
+  p = p+geom_bar(stat="identity")
+  p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
+                        width = 0) + ylab("mean (95% CI over CV rounds)\n\n\n")
+  
+  p <- p + ggtitle("Estimated regression weights with CIs") + theme_bw()
+  p = p + theme(text = element_text(size=15),
+                axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
+  p = p + facet_wrap(~ grouping, scales = "free_x",nrow=3,ncol=2)
+  print(p)
+  
+  # check how many betas sig
+  ci_res_upper_lower = as.matrix(ci_res[c('upper','lower')])
+  cur_fun = function(x) {
+    return(sign(x[1]) == sign(x[2])) 
+  }
+  sum(apply(ci_res_upper_lower,MARGIN = 1,FUN = cur_fun))
   
 }

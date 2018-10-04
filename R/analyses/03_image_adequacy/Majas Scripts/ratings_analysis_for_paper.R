@@ -3,17 +3,17 @@
 # before starting you need load the data
 
 ## LOAD PACKAGES AND DATA =====================================================
-library(lme4)
-library(multcomp)
-library(nloptr)
-library(pracma)
-setwd('S:/AG/AG-Spielsucht2/Daten/VPPG_Daten/Adlershof/Daten/PDT/pilot')
-load('data_pdt_Maja.rda')
+agk.load.ifnot.install('lme4')
+agk.load.ifnot.install('multcomp')
+agk.load.ifnot.install('nloptr')
+agk.load.ifnot.install('pracma')
+#setwd('S:/AG/AG-Spielsucht2/Daten/VPPG_Daten/Adlershof/Daten/PDT/pilot')
+#load('data_pdt_Maja.rda')
 
 ## PARAMS =====================================================================
-which_group    = 'HC'
-pic_value_vars = c("arousal","arousal_bcp","dominance","dominance_bcp","valence","valence_bcp","imageRating1s","imageRating1",
-                   "imageRating2s","imageRating2","imageRating3s","imageRating3","imageRating4s","imageRating4","imageRating5s","imageRating5")
+which_group    = 'both'
+pic_value_vars = c("arousal","dominance","valence","imageRating1s",
+                   "imageRating2s","imageRating3s","imageRating4s")
 cur_control    = lmerControl(optimizer = "nloptwrap", calc.derivs = FALSE)
 
 ## FUNCTIONS ==================================================================
@@ -59,15 +59,17 @@ agk.estimate.models = function(des_var,cur_control) {
   # you would like to do your tests on
   
   # define commands
-  cmd_1 = paste0('mod0 = lmer(',des_var,' ~ 1 + (1| subject) + (1|stim),data = data_pdt,REML = F)')
-  cmd_2 = paste0('modc = lmer(',des_var,' ~ (0+cat) + (0+cat| subject) + (0+cat|stim),data = data_pdt, REML = F, nAGQ = 0,control=cur_control)')
+  cmd_1 = paste0('mod0  = lmer(',des_var,' ~ 1 + (1| subject) + (1|stim),data = data_pdt,REML = F)')
+  cmd_2 = paste0('modc  = lmer(',des_var,' ~ (0+cat) + (0+cat| subject) ,data = data_pdt, REML = F,control=cur_control)')
+  cmd_3 = paste0('modcg = lmer(',des_var,' ~ (0+cat)*HCPG + (0+cat| subject) ,data = data_pdt, REML = F,control=cur_control)')
   
   # evaluate commands
   eval(parse(text = cmd_1))
   eval(parse(text = cmd_2))
+  eval(parse(text = cmd_3))
   
   # return
-  return(list(mod0 = mod0,modc = modc))
+  return(list(mod0 = mod0,modc = modc,modcg = modcg))
 } 
 
 agk.summarize.models = function(est_mods) {
@@ -76,7 +78,7 @@ agk.summarize.models = function(est_mods) {
   disp('####################')
   disp('# MODEL COMPARISON #')
   disp('####################')
-  print(anova(est_mods$mod0,est_mods$modc))
+  print(anova(est_mods$mod0,est_mods$modc,est_mods$modcg))
   disp('')
   disp('####################')
   disp('# MODEL MOD0       #')
@@ -87,12 +89,23 @@ agk.summarize.models = function(est_mods) {
   disp('# MODEL MODC       #')
   disp('####################')
   print(agk.lme.summary(est_mods$modc,type='norm'))
+  disp('####################')
+  disp('# MODEL MODCG      #')
+  disp('####################')
+  print(agk.lme.summary(est_mods$modcg,type='norm'))
   
   disp('')
-  disp('####################')
-  disp('# ALL COMPARISONS  #')
-  disp('####################')
+  disp('#########################')
+  disp('# ALL COMPARISONS MODC  #')
+  disp('#########################')
   cons = glht(est_mods$modc, linfct = mcp(cat = "Tukey"))
+  print(summary(cons,test=adjusted('none')))
+  
+  disp('')
+  disp('#########################')
+  disp('# ALL COMPARISONS MODCG #')
+  disp('#########################')
+  cons = glht(est_mods$modcg, linfct = mcp(cat = "Tukey"))
   print(summary(cons,test=adjusted('none')))
   
 }
@@ -110,7 +123,14 @@ for (hh in 1:length(data_pdt$HCPG)) {
 }
 
 # do it for HC or PG? PG or everything else (== HC)
-data_pdt = subset(data_pdt,HCPG == which_group)
+if (any(c('HC','PG') %in% which_group)) {
+  data_pdt = subset(data_pdt,HCPG == which_group)
+} else if(which_group == 'both') {
+  # do both
+} else {
+  stop('Do not no this value of which_group.')
+}
+
 
 # debug
 #data_pdt = subset(data_pdt, Cohort == 'PhysioPilot')
@@ -118,10 +138,10 @@ data_pdt = subset(data_pdt,HCPG == which_group)
 
 # CATEGORY LABELS =============================================================
 # Main effect of the final experimental categories: gam, pos, neg, neu_aw
-data_pdt_finCat = data_pdt
-data_pdt_finCat$cat = factor(as.numeric(as.character(data_pdt_finCat$cat)),levels = c(1,2,3,4,5,6,7,8),
-                             labels = c('gam','neg', 'pos','neuIAPS_NAPS','gray','neuIAPSAW','negIAPS','posIAPS'))
-data_pdt = data_pdt_finCat
+# data_pdt_finCat = data_pdt
+# data_pdt_finCat$cat = factor(as.numeric(as.character(data_pdt_finCat$cat)),levels = c(1,2,3,4,5,6,7,8),
+#                              labels = c('gam','neg', 'pos','neuIAPS_NAPS','gray','neuIAPSAW','negIAPS','posIAPS'))
+# data_pdt = data_pdt_finCat
 
 if(sum(is.na(data_pdt$cat))) {
   stop('There are NAs in the data_pdt$cat variable!')
@@ -171,7 +191,35 @@ data_pdt = data_pdt[data_pdt$stim %in% all_stim[stim_ok],]
 
 
 ## TEST RATINGS HYPOTHESES ONE GROUP ==========================================
+des_var = 'valence'
+res     = agk.estimate.models(des_var,cur_control)
+sumres  = agk.summarize.models(res) 
+
 des_var = 'arousal'
+res     = agk.estimate.models(des_var,cur_control)
+sumres  = agk.summarize.models(res) 
+
+des_var = 'dominance'
+res     = agk.estimate.models(des_var,cur_control)
+sumres  = agk.summarize.models(res) 
+
+# craving
+des_var = 'imageRating1s'
+res     = agk.estimate.models(des_var,cur_control)
+sumres  = agk.summarize.models(res) 
+
+# repr gambling
+des_var = 'imageRating2s'
+res     = agk.estimate.models(des_var,cur_control)
+sumres  = agk.summarize.models(res)
+
+# repr pos
+des_var = 'imageRating2s'
+res     = agk.estimate.models(des_var,cur_control)
+sumres  = agk.summarize.models(res) 
+
+# repr neg
+des_var = 'imageRating2s'
 res     = agk.estimate.models(des_var,cur_control)
 sumres  = agk.summarize.models(res) 
 

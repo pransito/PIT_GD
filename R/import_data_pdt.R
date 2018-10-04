@@ -24,7 +24,7 @@ do_matching              = 1
 do_save                  = 1
 # you may tunr off the export of the info_mri selection for debugging;
 # this is to write the Sjinfo.mat file on MATLAB side
-write_info_mri_selection = 0
+write_info_mri_selection = 1
 # scaling: currently centered-only (gain, loss)
 use_z                    = 1 
 # accept rject is not binary but 1 through 4 (metric)
@@ -118,9 +118,9 @@ base_bgg          = paste("C:/Users/",user,"Google Drive/Promotion/VPPG/VPPG_Exc
 base_lib          = paste("C:/Users/",user,"Google Drive/",sep="")
 
 # other working locations
-#base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
-#base_lib          = "E:/Google Drive/"
-#base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
+base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
+base_lib          = "E:/Google Drive/"
+base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
 
 
 # some other absolute paths to be set with brute force
@@ -761,10 +761,13 @@ if (import_existing_imp == 0) {
     # add the covariates info
     dat_match$edu_years_sum = dat_match$edu_years + dat_match$edu_years_voca 
     cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years_sum','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
-    write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+    write.table(file="info_mri_selection_30_30.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
     
     setwd(path_dat)
-    write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+    write.table(file="info_mri_selection_30_30.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+    
+    setwd(path_dat_GD)
+    write.table(file="info_mri_selection_30_30.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
   }
   
   if (do_save) {
@@ -783,7 +786,7 @@ if (import_existing_imp == 0) {
       if (write_info_mri_selection) {
         # google drive
         setwd(path_dat_GD)
-        write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+        write.table(file="info_mri_selection_30_30.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
       }
       setwd(path_dat_GD)
       save(file="data_pdt_Maja.rda",list = ls())
@@ -839,7 +842,10 @@ if (import_existing_imp == 0) {
   dat_match$edu_years_sum = dat_match$edu_years + dat_match$edu_years_voca 
   if (write_info_mri_selection) {
     cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years_sum','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
-    write.table(file="info_mri_selection.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+    write.table(file="info_mri_selection_30_30.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
+    
+    setwd(path_dat_GD)
+    write.table(file="info_mri_selection_30_30.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
   }
   
   if (path_S == F) {

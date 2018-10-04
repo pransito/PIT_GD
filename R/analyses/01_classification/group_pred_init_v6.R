@@ -109,6 +109,21 @@ if (reduce_fMRI_data & add_cr_pp_ma & which_study == 'MRT') {
   # take out PPI StrAs
   cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs',names(cr_agg_pp_r),invert = T)]
   
+  # take out StrAs in general
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*_StrAs',names(cr_agg_pp_r),invert = T)]
+  
+  # allow PPI StrAs but only caudate and putamen split and do not allow self-connectivities
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs_',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._StrAsPut',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._StrAsCaud',names(cr_agg_pp_r),invert = T)]
+  # allow only StrAs to OFC
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._StrAsPut',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._Acc',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._Amy',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._StrAsCaud',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._Acc',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._Amy',names(cr_agg_pp_r),invert = T)]
+  
   cr_agg_pp   = cr_agg_pp_r
 }
 
@@ -143,12 +158,12 @@ if (which_study == 'MRT' & add_cr_pp_ma) {
     cur_R_source                 = gsub('_PPI_L_','_PPI_R_',cur_name)     # right source left target
     cur_R_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_R_source) # right source right target
     cur_L_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_name)     # left source right target
-    
+
     # new name and calculation of mean
     new_name                     = gsub('_PPI_L_','_PPI_LR_',cur_name)
     new_name                     = gsub('_ROI_L_','_ROI_LR_',new_name)
     cr_agg_pp_m[[new_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R_source]] + cr_agg_pp_m[[cur_R_source_L_tar]] + cr_agg_pp_m[[cur_L_source_L_tar]])/4
-    
+
     # delete unneeded variables
     cr_agg_pp_m[cur_name]            = NULL
     cr_agg_pp_m[cur_R_source]        = NULL
@@ -165,7 +180,7 @@ if (which_study == 'MRT' & add_cr_pp_ma) {
     cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG)/2
     cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG)/2
   }
-  
+
   # delete unneeded variables
   cr_agg_pp_m[names(cr_agg_pp_m)[grep('PPI_._',names(cr_agg_pp_m))]] = NULL
   cr_agg_pp = cr_agg_pp_m

@@ -1,5 +1,35 @@
+## PREAMBLE =====================================================================
 # script to get p-value against total H0
 
+# YOU HAVE TO run the group_pred_loop_v6.R script once with these settings:
+
+# # WHAT TO RUN =================================================================
+# # just the behavioral parameter sets
+# outer_cv_noaddfeat_noperm = 0 # with outer CV, getting generalization error
+# outer_cv_noaddfeat_wiperm = 0 # with permutation [not recommended*]
+# noout_cv_noaddfeat_noperm = 0 # no outer CV, get class on whole sample
+# 
+# # behavior plus peripheral-physiological stuff
+# outer_cv_wiaddfeat_noperm = 0 # adding physio
+# outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
+# noout_cv_wiaddfeat_noperm = 0 # adding physio
+# 
+# # only peripheral-physiological / MRI
+# outer_cv_addfeaton_noperm = 0 # Ha only, i.e. physio/MRI  
+# outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
+# noout_cv_addfeaton_noperm = 0 # to get the complete model 
+# 
+# outer_cv_c_model_noperm   = 0 # control model/null-model for classification;
+# # not needed for MRI case (p-value comp in dfferent script)
+# 
+# # what to report
+# do_report                 = 0
+# do_report_no_added_feat   = 0
+# do_report_with_added_feat = 0
+# do_report_feat_only       = 0
+
+
+## SCRIPT STARTS ==============================================================
 # load libraries
 agk.load.ifnot.install('Matching')
 
@@ -13,11 +43,10 @@ get.truth.4 = function() {
 }
 
 # set runs
-runs0 = 3000
+runs0 = 500
 
 # under 0
 # pooled
-# updated for the 30 vs. 30 case
 all_aucs  = c()
 all_aucsl = list()
 all_accs  = c()
@@ -36,14 +65,6 @@ for (ii in 1:runs0) {
     inner_resps  = c(inner_resps,as.numeric(randn(1,6)*10))
   }
   
-  # # 4
-  # for (jj in 9:9) {
-  #   # get truth
-  #   inner_truths = c(inner_truths,as.character(get.truth.4()))
-  #   # get response
-  #   inner_resps  = c(inner_resps,as.numeric(randn(1,8)*10))
-  # }
-  
   # cur_auc
   cur_roc         = roc(inner_truths,inner_resps)
   all_aucs[ii]    = cur_roc$auc
@@ -61,24 +82,11 @@ for (ii in 1:runs0) {
 }
 
 ## get the auc, acc, sens, spec ===============================================
-# 200 is for MRI: no cleaning
-# 201 is for MRI: cleaning with BIC criterion
-# 202 is for MRI: cleaning with AIC criterion
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/201')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/202')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/45')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/46')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/200')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/50')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/51')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/54')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/55')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/20')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/40')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/41')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1020')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1022')
-setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1023')
+# setting the path to the result folder wil result in the followin result evaluation
+# 1023: fMRI predictors with AIC cleaning
+# 1024: fMRI predictor with BIC cleaning
+# 1025: fMRI predictor with no cleaning
+setwd(paste0(root_wd, '/results/1023'))
 e = new.env()
 load('MRT_predGrp1_rounds_wio_onlyPhys_no_perm.RData',envir = e)
 
@@ -93,46 +101,43 @@ sen         = mean(unlist(lapply(e$CV_res_list_op,FUN = cur_fun_sen)))
 spe         = mean(unlist(lapply(e$CV_res_list_op,FUN = cur_fun_spe)))
 
 ## density plots ==============================================================
-# only auc but multiple classifiers
-# old mean_auc = 0.6475 (where is this from?)
-#cur_dat_be = data.frame(H_0 = all_aucs,mean_auc = auc,classifier = 'prev_behav_glmnet')
-cur_dat_gl = data.frame(H_0 = all_aucs,mean_auc = mean(auc),classifier = 'MRI_glmnet')
-#cur_dat_sv = data.frame(H_0 = all_aucs,mean_auc = mean(real_aucs_svm),classifier = 'MRI_svm')
-
+# only auc will be plotted cause it is the most informative performance measure
+# only H0 and mean AUC of classifier performance will be plotted
+cur_dat_gl           = data.frame(H_0 = all_aucs,mean_auc = mean(auc),classifier = 'MRI_glmnet')
 cur_dat              = rbind(cur_dat_gl) #rbind(cur_dat_be,cur_dat_gl,cur_dat_sv)
 cur_dat              = melt(cur_dat,id.vars = c('classifier'))
 cur_dat_H_0          = subset(cur_dat,variable == 'H_0')
 cur_dat_H_0$mean_auc = cur_dat$value[cur_dat$variable == 'mean_auc']
 cur_dat              = cur_dat_H_0
+
+# plot
 p = ggplot(cur_dat,aes(x=value, fill=variable)) + geom_density(alpha=0.25)
 p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for different classifiers compared to random classifier')
 p = p + geom_vline(aes(xintercept = mean_auc),colour = 'green',size= 1.5)
 print(p)
 
 ## density plots with two densities ============================================
-# only auc but multiple classifiers
-# old mean_auc = 0.6475 (where is this from?)
-#cur_dat_be = data.frame(H_0 = all_aucs,mean_auc = auc,classifier = 'prev_behav_glmnet')
-#cur_dat_sv = data.frame(H_0 = all_aucs,mean_auc = mean(real_aucs_svm),classifier = 'MRI_svm')
-
-Ha_auc      = unlist(lapply(e$CV_res_list_op,FUN = cur_fun_auc))
-Ha_auc      = rep_len(Ha_auc,length.out = length(all_aucs))
-cur_dat_gl  = data.frame(H0 = all_aucs,Ha_auc = Ha_auc,classifier = 'MRI_glmnet')
-
-
+# plots also the density of the performance of the classifier
+Ha_auc               = unlist(lapply(e$CV_res_list_op,FUN = cur_fun_auc))
+Ha_auc               = rep_len(Ha_auc,length.out = length(all_aucs))
+cur_dat_gl           = data.frame(H0 = all_aucs,Ha_auc = Ha_auc,classifier = 'MRI_glmnet')
 cur_dat              = rbind(cur_dat_gl) #rbind(cur_dat_be,cur_dat_gl,cur_dat_sv)
 cur_dat              = melt(cur_dat,id.vars = c('classifier'))
-#cur_dat_H_0          = subset(cur_dat,variable == 'H_0')
-#cur_dat_H_0$mean_auc = cur_dat$value[cur_dat$variable == 'mean_auc']
-#cur_dat              = cur_dat_H_0
+
+# plot
 p = ggplot(cur_dat,aes(x=value, fill=variable)) + geom_density(alpha=0.25)
 p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for MRI glmnet classifier compared to random classifier')
 p = p + geom_vline(aes(xintercept = mean(auc)),colour = 'green',size= 1.5)
 print(p+theme_bw())
 
-## test glmnet
-1-agk.density_p.c(all_aucs,auc)
-1-agk.density_p.c(all_accs,acc)
-1-agk.density_p.c(all_sens,sen)
-1-agk.density_p.c(all_spec,spe)
+## p-values test glmnet
+message('The p-values for fMRI classifier for AUC, accuracy, sensitivity, specificity are:')
+message(' ')
+message(1-agk.density_p.c(all_aucs,auc))
+message(' ')
+message(1-agk.density_p.c(all_accs,acc))
+message(' ')
+message(1-agk.density_p.c(all_sens,sen))
+message(' ')
+message(1-agk.density_p.c(all_spec,spe))
 

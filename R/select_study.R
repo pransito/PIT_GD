@@ -254,6 +254,64 @@ for (ss in 2:length(enh_dpdt)) {
   data_pdt = rbind(data_pdt,enh_dpdt[[ss]])
 }
 
+## MRI DATA LOADING ===========================================================
+# load the MRI extracts
+# excluding subjects because of missing in pp
+# prepping data frames for pp
+if (which_study == 'MRT') {
+  setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
+  source("get_phys_and_rating_params_MRI.R")
+  setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
+}
+
+# reduce the fMRI data
+if (which_study == 'MRT') {
+  if (fmri_extr == 'ngm' | fmri_extr == 'glc') {
+    cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxAccx',names(cr_agg_pp)),grep('PicGamOnxaccX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
+  } else if (fmri_extr == 'val') {
+    cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxvalx',names(cr_agg_pp)),grep('PicGamOnxvalX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
+  }
+  
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*DRN_8',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*AIns',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*PIns',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('_BA_',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('_ACgG',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_.OrG',names(cr_agg_pp_r),invert = T)] # OFC none-gppi extracts
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_MFC',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_MSFG',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_MFC',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_MSFG',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_full_midbrain',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._.OrG',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._Caudate',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Amy.*_._Amy',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._Acc',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('.*Caudate$',names(cr_agg_pp_r),invert = T)]
+  cr_agg_pp_r = cr_agg_pp_r[grep('.*Putamen$',names(cr_agg_pp_r),invert = T)]
+  
+  # take out PPI StrAs
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs',names(cr_agg_pp_r),invert = T)]
+  
+  # take out StrAs in general
+  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*_StrAs',names(cr_agg_pp_r),invert = T)]
+  
+  # allow PPI StrAs but only caudate and putamen split and do not allow self-connectivities
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs_',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._StrAsPut',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._StrAsCaud',names(cr_agg_pp_r),invert = T)]
+  # allow only StrAs to OFC
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._StrAsPut',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._Acc',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._Amy',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._StrAsCaud',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._Acc',names(cr_agg_pp_r),invert = T)]
+  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._Amy',names(cr_agg_pp_r),invert = T)]
+  
+  cr_agg_pp        = cr_agg_pp_r
+  cr_agg_pp_readin = cr_agg_pp
+}
+
 ## SAVE TO WORKSPACE ==========================================================
 # saving this result
 data_pdt_bcp_study_selected  = data_pdt

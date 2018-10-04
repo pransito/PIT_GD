@@ -77,15 +77,17 @@ KFG_cutoff               = 16
 # for matching: which studies to do it on, and what are the group sizes?
 # set desired_n to too high value if you do not want to do the matching for a particular study
 which_studies            = c("MRT","POSTPILOT")
+# how many subjects per group desired?
 desired_n                = list(c(32,32),c(30,30))
 # for matching (dom: do matching variables, do matching variables narrowed for elimination of couples)
 # cut out: 'edu_years_voca','edu_hollingshead'
 
 #cur_names_dom            = c('edu_years_sum','income_personal','smoking_ftdt','Age','audit','dem_gender','handedness','unemployed')
 #cur_names_dom_narrowed   = c('edu_years_sum','Age','smoking_ftdt')
-
 cur_names_dom            = c('edu_years','income_personal','smoking_ftdt','Age','audit','dem_gender','handedness','unemployed')
 cur_names_dom_narrowed   = c('edu_years','Age','smoking_ftdt')
+# for mri extraction data: which extraction to use in fMRI; glc: gain, loss, category; ngm: no gamble model, only category
+fmri_extr                = 'glc'
 
 ## EXCLUSION/EXEMPTION LISTS ==================================================
 # subjects that are exempt of physio; have been checked; do not have physio
@@ -915,6 +917,7 @@ if (acc_num == 1) {
   data_pdt$accept_reject[data_pdt$accept_reject == 5] = NA
   data_pdt_bcp = data_pdt
 }
+
 
 # create bcp for select study and other analysis scripts
 data_pdt_bcp  = data_pdt

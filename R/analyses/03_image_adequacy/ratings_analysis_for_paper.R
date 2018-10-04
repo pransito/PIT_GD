@@ -7,14 +7,17 @@ agk.load.ifnot.install('lme4')
 agk.load.ifnot.install('multcomp')
 agk.load.ifnot.install('nloptr')
 agk.load.ifnot.install('pracma')
-#setwd('S:/AG/AG-Spielsucht2/Daten/VPPG_Daten/Adlershof/Daten/PDT/pilot')
-#load('data_pdt_Maja.rda')
+
+## PUT DATA_PDT in safe-keeping ===============================================
+data_pdt_ra_bcp = data_pdt
 
 ## PARAMS =====================================================================
-which_group    = 'both'
-pic_value_vars = c("arousal","dominance","valence","imageRating1s",
-                   "imageRating2s","imageRating3s","imageRating4s")
-cur_control    = lmerControl(optimizer = "nloptwrap", calc.derivs = FALSE)
+which_group           = 'both'
+pic_value_vars        = c("arousal","dominance","valence","imageRating1s",
+                          "imageRating2s","imageRating3s","imageRating4s")
+pic_value_vars_labels = c('Valence', 'Arousal','Dominance', "Elicits_Craving",
+                          "Representative_for_Gambles","Representative_for_Negative","Representative_for_Positive")
+cur_control           = lmerControl(optimizer = "nloptwrap", calc.derivs = FALSE)
 
 ## FUNCTIONS ==================================================================
 nlopt <- function(par, fn, lower, upper, control) {
@@ -100,14 +103,6 @@ agk.summarize.models = function(est_mods) {
   disp('#########################')
   cons = glht(est_mods$modc, linfct = mcp(cat = "Tukey"))
   print(summary(cons,test=adjusted('none')))
-  
-  disp('')
-  disp('#########################')
-  disp('# ALL COMPARISONS MODCG #')
-  disp('#########################')
-  cons = glht(est_mods$modcg, linfct = mcp(cat = "Tukey"))
-  print(summary(cons,test=adjusted('none')))
-  
 }
 
 ## PREP THE DATA ==============================================================
@@ -191,35 +186,12 @@ data_pdt = data_pdt[data_pdt$stim %in% all_stim[stim_ok],]
 
 
 ## TEST RATINGS HYPOTHESES ONE GROUP ==========================================
-des_var = 'valence'
-res     = agk.estimate.models(des_var,cur_control)
-sumres  = agk.summarize.models(res) 
+for (dd in 1:length(pic_value_vars_labels)) {
+  message(paste0('Univariate tests for the rating variable: ', pic_value_vars_labels[dd]))
+  des_var = pic_value_vars[dd]
+  res     = agk.estimate.models(des_var,cur_control)
+  sumres  = agk.summarize.models(res) 
+}
 
-des_var = 'arousal'
-res     = agk.estimate.models(des_var,cur_control)
-sumres  = agk.summarize.models(res) 
-
-des_var = 'dominance'
-res     = agk.estimate.models(des_var,cur_control)
-sumres  = agk.summarize.models(res) 
-
-# craving
-des_var = 'imageRating1s'
-res     = agk.estimate.models(des_var,cur_control)
-sumres  = agk.summarize.models(res) 
-
-# repr gambling
-des_var = 'imageRating2s'
-res     = agk.estimate.models(des_var,cur_control)
-sumres  = agk.summarize.models(res)
-
-# repr pos
-des_var = 'imageRating2s'
-res     = agk.estimate.models(des_var,cur_control)
-sumres  = agk.summarize.models(res) 
-
-# repr neg
-des_var = 'imageRating2s'
-res     = agk.estimate.models(des_var,cur_control)
-sumres  = agk.summarize.models(res) 
-
+## DATA_PDT into initial state ================================================
+data_pdt_ra_bcp = data_pdt

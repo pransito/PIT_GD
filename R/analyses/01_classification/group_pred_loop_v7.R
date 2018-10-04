@@ -2,14 +2,13 @@
 # Version 6.0
 # script to run group prediction with CV in a loop to see how stable results are
 # i.e. group prediction cross validated; in a loop because
-# we work with 10-fold or 5-fold cross-validation for tuning and this can be run
+# we work with 10-fold or 5-fold cross-validation and this can be run
 # many different times in different ways; needs to be sampled, like a bootstrap
 # note: prediction here used interchangeably with "classification"
 
 # through running a control model getting a null-distribution
 # also you can run the nooCV version to get the model that is most likely 
-# estimated by the given data; nooCV: no outer cross validation; complete
-# data is used
+# estimated by the given data; nooCV: no outer cross validation
 
 # WHAT TO RUN helps to select what the script should do; already set so it 
 # is like it is in paper
@@ -19,7 +18,7 @@
 
 # author: Alexander Genauck
 # email:  alexander.genauck@charite.de
-# date:   04.10.2018
+# date:   15.07.2018
 
 # PREPARATION FOR FOREIGN RUN =================================================
 rm(list=ls())
@@ -73,54 +72,46 @@ agk.load.ifnot.install('StatMatch')
 agk.load.ifnot.install('MatchIt')
 agk.load.ifnot.install('optmatch')
 agk.load.ifnot.install('WhatIf')
-agk.load.ifnot.install('Matching')
 
 # WHAT TO RUN =================================================================
 # just the behavioral parameter sets
 outer_cv_noaddfeat_noperm = 0 # with outer CV, getting generalization error
-outer_cv_noaddfeat_wiperm = 0 # with permutation [not recommended*]
+outer_cv_noaddfeat_wiperm = 0 # with permutation
 noout_cv_noaddfeat_noperm = 0 # no outer CV, get class on whole sample
 
 # behavior plus peripheral-physiological stuff
 outer_cv_wiaddfeat_noperm = 0 # adding physio
-outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
+outer_cv_addfeaton_wiperm = 0 # with permutation
 noout_cv_wiaddfeat_noperm = 0 # adding physio
 
 # only peripheral-physiological / MRI
-outer_cv_addfeaton_noperm = 0 # Ha only, i.e. physio/MRI  
-outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
-noout_cv_addfeaton_noperm = 0 # to get the complete model 
+outer_cv_addfeaton_noperm = 1 # Ha only, i.e. physio/MRI  
+outer_cv_addfeaton_wiperm = 0 # with permutation
+noout_cv_addfeaton_noperm = 1 # to get the complete model 
 
-outer_cv_c_model_noperm   = 0 # control model/null-model for classification;
-                              # not needed for MRI case (p-value comp in dfferent script)
+outer_cv_c_model_noperm   = 0 # control model/null-model for classification
 
 # what to report
-do_report                 = 0
+do_report                 = 1
 do_report_no_added_feat   = 0
 do_report_with_added_feat = 0
-do_report_feat_only       = 0
-
-# *permutation is turned off; it is very slow and technically needs to be done
-# for each round a large amount of times; gets infeasable; instead we are
-# using a control model (e.g. an empty model, i.e. random classification
-# or a model with just covariate as predictor)
-# that we can easily and quickly run with the same N and balanced labels as
-# our original data but for many thousand times to get a distribution under H0
+do_report_feat_only       = 1
 
 # PARAMETERS TO SET: General ==================================================
-# number of runs to get the CV results distribution, >=1000 recommended
-# runs also will be the name of the results folder; what is stored in the results
-# folder is described here:
-# 300 : p. physio pred (PIT GD behav paper)
-# 1010: behav predictions (PIT GD behav paper) 
-
-# 1023: fMRI predictors with AIC cleaning
-# 1024: fMRI predictor with BIC cleaning
-# 1025: fMRI predictor with no cleaning
+# number of runs to get the CV results distribution, 1000 recommended
 runs                  = 10 
+# physio pred: 300 from home; current correct one for behav: 1010;
+# 1020: fMRI predictors with AIC cleaning
+# 1021: fMRI predictor with BIC cleaning
+# 1022: fMRI predictor with no cleaning
+
+# 1023: fMRI predictors with AIC cleaning no DS
+# 1024: fMRI predictor with BIC cleaning no DS
+# 1025: fMRI predictor with no cleaning no DS
+
 
 # set some seed to ensure reproducability
-des_seed              = 6993
+des_seed              = 6993 # 990 normally (combine 90 runs with 10 runs)
 # run the models (for param extraction in exp)
 est_models            = 1
 # ridge regression binomial;
@@ -216,11 +207,9 @@ add_cr_pp_ma         = 1
 # can be set to 0, if feature selection and adding should not be done on this
 # legacy: should never be done, cause ratings post-experiment
 add_cr_ra_ma         = 0
-# plot rating params
+# plot and stats should be turned of for phys and rating params
 # only for generating plots of ratings/p. physio
-plot_ratings         = 1
-# ... plots for p. physio? not relevant in MRI study
-plot_physio          = 0
+plot_and_stats       = 0
 
 # PROCESS PREPS ===============================================================
 # do not make any settings here

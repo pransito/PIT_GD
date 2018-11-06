@@ -30,6 +30,8 @@
 # do_report_with_added_feat = 0
 # do_report_feat_only       = 0
 
+stopifnot(which_study == 'MRT') 
+
 
 # functions
 get.truth = function() {
@@ -44,9 +46,13 @@ get.truth.2 = function() {
   sample(c(rep('HC',2),rep('PG',2)))
 }
 
+# params
+apply_stand = 1
+do_clean    = 0
+
 
 # set runs
-runs0 = 500
+runs0 = 10000
 
 # under 0
 # pooled
@@ -85,6 +91,7 @@ for (ii in 1:runs0) {
 }
 
 ## use a consensus of ALL models from PDT behav ===============================
+# setwd(paste0(root_wd,'/results/1010/'))
 setwd(paste0(root_wd,'/results/1010/'))
 load('POSTPILOT_HCPG_predGrp1_rounds_noo_noaddfeat.RData')
 
@@ -109,16 +116,29 @@ for (mm in 1:length(list_winning_model_c_nooCV)) {
   cur_l = list_winning_model_l_nooCV[[mm]]
   cur_m = cur_mod_sel_nooCV[mm]
   
-  # apply the standardization and get decision value
-  setwd(paste0(root_wd,'/results/1010/'))
-  
-  load(paste0('POSTPILOT_', cur_m,'_stand.RData'))
-  pp_scale = attributes(pp_b_dat)
-  
   mr_b_dat = featmod_coefs[[cur_m]]
   mr_b_dat = mr_b_dat[,grep('HCPG',names(mr_b_dat),invert=T)]
-  mr_b_dat = data.frame(mr_b_dat,pred_smoking_ftdt = dat_match$smoking_ftdt)
-  mr_b_dat = scale(mr_b_dat,center = pp_scale$`scaled:center`, scale = pp_scale$`scaled:scale`)
+  
+  if (do_clean) {
+    res      = agk.clean.vars(mr_b_dat,dat_match = dat_match,vars_to_cov = 'smoking_ftdt',clean_inf_crit = 'AIC')
+    mr_b_dat = res$cr_agg_pp_cleaned
+  }
+  
+  if (apply_stand) {
+    
+     # apply the standardization and get decision value
+    setwd(paste0(root_wd,'/results/1010/'))
+    
+    load(paste0('POSTPILOT_', cur_m,'_stand.RData'))
+    pp_scale = attributes(pp_b_dat)
+    
+
+    mr_b_dat = data.frame(mr_b_dat,pred_smoking_ftdt = dat_match$smoking_ftdt)
+    mr_b_dat = scale(mr_b_dat,center = pp_scale$`scaled:center`, scale = pp_scale$`scaled:scale`)
+  }
+  
+
+  
   mr_b_dat = data.frame(ones(length(mr_b_dat[,1]),1),mr_b_dat)
   
   # prediction
@@ -157,16 +177,45 @@ message(' ')
 all_mod_mean_auc = auc
 message(all_mod_mean_auc)
 
+# get auc per classifier
+real_aucs = c()
+for (aa in 1:length(responses)) {
+  real_aucs[aa] = as.numeric(auc(roc(as.numeric(dat_match$HCPG),as.numeric(responses[[aa]]))))
+}
+
 ## density plots ==============================================================
-cur_dat_be = data.frame(H_0 = all_aucs,mean_auc = rep(all_mod_mean_auc,length(all_aucs)),classifier = 'prev_behav_glmnet')
+cur_dat_be = data.frame(random_classifier = all_aucs,mean_auc = rep(all_mod_mean_auc,length(all_aucs)),classifier = 'prev_behav_glmnet')
 
 
 cur_dat              = rbind(cur_dat_be) #,cur_dat_gl,cur_dat_sv)
 cur_dat              = melt(cur_dat,id.vars = c('classifier'))
-cur_dat_H_0          = subset(cur_dat,variable == 'H_0')
+cur_dat_H_0          = subset(cur_dat,variable == 'random_classifier')
 cur_dat_H_0$mean_auc = cur_dat$value[cur_dat$variable == 'mean_auc']
 cur_dat              = cur_dat_H_0
-p = ggplot(cur_dat,aes(x=value, fill=variable)) + geom_density(alpha=0.25)
-p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for existing classifier compared to random classifier')
+cur_dat$AUC_ROC      = cur_dat$value
+cur_dat$value        = NULL
+p = ggplot(cur_dat,aes(x=AUC_ROC, fill=variable)) + geom_density(alpha=0.25)
+#p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for estimated classifier compared to random classifier')
+p = p + ggtitle('AUC densities for estimated classifier compared to random classifier')
 p = p + geom_vline(aes(xintercept = mean_auc),colour = 'green',size= 1.5)
+p = p + coord_cartesian(xlim = c(0.42, 0.8)) 
+p = p + theme_bw()
+p = p + theme(axis.text=element_text(size=14, face = "bold"),
+              axis.title=element_text(size=20,face="bold"))
+print(p)
+
+## two density plots ==============================================================
+Ha_auc               = real_aucs
+cur_dat_gl           = data.frame(H0 = all_aucs,Ha_auc = Ha_auc,classifier = 'full_classifier')
+cur_dat              = rbind(cur_dat_gl) #rbind(cur_dat_be,cur_dat_gl,cur_dat_sv)
+cur_dat              = melt(cur_dat,id.vars = c('classifier'))
+
+# plot
+p = ggplot(cur_dat,aes(x=value, fill=variable)) + geom_density(alpha=0.25)
+p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for MRI glmnet classifier compared to random classifier')
+p = p + geom_vline(aes(xintercept = as.numeric(all_mod_mean_auc)),colour = 'green',size= 1.5)
+p = p + theme_bw()
+p = p + theme(axis.text=element_text(size=14, face = "bold"),
+              axis.title=element_text(size=20,face="bold"))
+p = p + coord_cartesian(xlim = c(0.4, 0.8)) 
 print(p)

@@ -176,114 +176,129 @@ cur.mod.selection.fun = function(kk) {
   full_mods_ms = list()
   cvme_vec     = c()
   
-  # multiple times doing model comparison
-  ms_reps_v = c()
-  for (rr in 1:ms_reps) {
-    # getting the folds needed
-    cur_fold_id = cur_fold_id_list[[kk]]
-    
-    # NEW: get a new folding on every model selection rep round 4.3.2018: I need to let this run again
-    # the follwoing two lines were missing!
-    cur_flds    = f_K_fold_b2g(featmod_coefs_cv[[kk]][[1]],'HCPG',cnfolds)
-    cur_fold_id = agk.get.foldid(cur_flds)
-    
-    for (ii in 1:length(featmod_coefs_cv[[kk]])) {
+  if (!put_all_behav_vars_in) {
+    # multiple times doing model comparison
+    ms_reps_v = c()
+    for (rr in 1:ms_reps) {
+      # getting the folds needed
+      cur_fold_id = cur_fold_id_list[[kk]]
       
-      # unit test that stratified folds for inner CV
-      if (unit_test_strat_innCV) {
-        for (zz in unique(cur_fold_id)[order(unique(cur_fold_id))]) {
-          check_half = table(featmod_coefs_cv[[kk]][[ii]][['HCPG']][cur_fold_id == zz])
-          if(check_half[1] != check_half[2]) {
-            stop('Unbalanced test set for inner CV!')
+      # NEW: get a new folding on every model selection rep round 4.3.2018: I need to let this run again
+      # the follwoing two lines were missing!
+      cur_flds    = f_K_fold_b2g(featmod_coefs_cv[[kk]][[1]],'HCPG',cnfolds)
+      cur_fold_id = agk.get.foldid(cur_flds)
+      
+      for (ii in 1:length(featmod_coefs_cv[[kk]])) {
+        
+        # unit test that stratified folds for inner CV
+        if (unit_test_strat_innCV) {
+          for (zz in unique(cur_fold_id)[order(unique(cur_fold_id))]) {
+            check_half = table(featmod_coefs_cv[[kk]][[ii]][['HCPG']][cur_fold_id == zz])
+            if(check_half[1] != check_half[2]) {
+              stop('Unbalanced test set for inner CV!')
+            }
           }
         }
-      }
-      
-      cur_data = featmod_coefs_cv[[kk]][[ii]]
-      
-      # unit test check that data is really permuted/unpermuted
-      cur_sub_grp_matching = subset(sub_grp_matching, row.names(sub_grp_matching) %in% row.names(cur_data))
-      cur_data_pm          = cur_data[c('HCPG')]
-      cur_data_pm          = cur_data_pm[order(row.names(cur_data_pm)),]
-      cur_sub_grp_matching = cur_sub_grp_matching[order(row.names(cur_sub_grp_matching)),]
-      stopifnot(all(row.names(cur_data_pm) == row.names(cur_sub_grp_matching)))
-      if (do_permut) {
-        stopifnot(!all(cur_data_pm == cur_sub_grp_matching))
-      } else {
-        stopifnot(all(cur_data_pm == cur_sub_grp_matching))
-      }
-     
-      # check if a single-predictor case (ac model)
-      if (length(cur_data) == 2) {
-        cur_data$err = randn(length(cur_data[,1]),1)
-      } else {
-        # cur data can stay as it is
-      }
-     
-      # make formula
-      cur_formula = as.formula('HCPG ~ .')
-      
-      out = tryCatch(
-        # work around for bug
-        # https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R 
-        {
-          cur_lam            = NULL
-          cur_cvmoda         = glmnetUtils::cva.glmnet(cur_formula,family=cur_family,
-                                                       data=cur_data,type.measure=type_measure,
-                                                       alpha = 0,foldid = cur_fold_id,
-                                                       use.model.frame=useModelFrame,grouped=doGrouped,lambda = cur_lam,
-                                                       standardize = des_stand_glmnet)
-        },
-        error=function(cond) {
-          message("Had to resort to predefined lambdas")
-          cur_lam = des_lambdas
-          cur_cvmoda         = glmnetUtils::cva.glmnet(cur_formula,family=cur_family,
-                                                       data=cur_data,type.measure=type_measure,
-                                                       alpha = 0,foldid = cur_fold_id,lambda=cur_lam,
-                                                       use.model.frame=useModelFrame,grouped=doGrouped,
-                                                       standardize = des_stand_glmnet)
+        
+        cur_data = featmod_coefs_cv[[kk]][[ii]]
+        
+        # unit test check that data is really permuted/unpermuted
+        cur_sub_grp_matching = subset(sub_grp_matching, row.names(sub_grp_matching) %in% row.names(cur_data))
+        cur_data_pm          = cur_data[c('HCPG')]
+        cur_data_pm          = cur_data_pm[order(row.names(cur_data_pm)),]
+        cur_sub_grp_matching = cur_sub_grp_matching[order(row.names(cur_sub_grp_matching)),]
+        stopifnot(all(row.names(cur_data_pm) == row.names(cur_sub_grp_matching)))
+        if (do_permut) {
+          stopifnot(!all(cur_data_pm == cur_sub_grp_matching))
+        } else {
+          stopifnot(all(cur_data_pm == cur_sub_grp_matching))
         }
-      )
-      cur_cvmoda = out
-      
-      full_mods_ms[[ii]] = agk.glmnetUtils.cvalpha.getwinner(cur_cvmoda)
-      
-      # unit test: predictors before and after need to align
-      cur_coef = coef(full_mods_ms[[ii]]$winning_model,s='lambda.min')
-      cur_coef = row.names(cur_coef)
-      cur_coef = cur_coef[grep('(Intercept)',cur_coef,fixed=T,invert = T)]
-      cur_fprd = names(cur_data)[grep('HCPG',names(cur_data),invert = T)]
-      if (!all(cur_coef == cur_fprd)) {
-        stop('Behav model selection: formula predictors and predictors in resulting model do not align!')
+        
+        # check if a single-predictor case (ac model)
+        if (length(cur_data) == 2) {
+          cur_data$err = randn(length(cur_data[,1]),1)
+        } else {
+          # cur data can stay as it is
+        }
+        
+        # make formula
+        cur_formula = as.formula('HCPG ~ .')
+        
+        out = tryCatch(
+          # work around for bug
+          # https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R 
+          {
+            cur_lam            = NULL
+            cur_cvmoda         = glmnetUtils::cva.glmnet(cur_formula,family=cur_family,
+                                                         data=cur_data,type.measure=type_measure,
+                                                         alpha = 0,foldid = cur_fold_id,
+                                                         use.model.frame=useModelFrame,grouped=doGrouped,lambda = cur_lam,
+                                                         standardize = des_stand_glmnet)
+          },
+          error=function(cond) {
+            message("Had to resort to predefined lambdas")
+            cur_lam = des_lambdas
+            cur_cvmoda         = glmnetUtils::cva.glmnet(cur_formula,family=cur_family,
+                                                         data=cur_data,type.measure=type_measure,
+                                                         alpha = 0,foldid = cur_fold_id,lambda=cur_lam,
+                                                         use.model.frame=useModelFrame,grouped=doGrouped,
+                                                         standardize = des_stand_glmnet)
+          }
+        )
+        cur_cvmoda = out
+        
+        full_mods_ms[[ii]] = agk.glmnetUtils.cvalpha.getwinner(cur_cvmoda)
+        
+        # unit test: predictors before and after need to align
+        cur_coef = coef(full_mods_ms[[ii]]$winning_model,s='lambda.min')
+        cur_coef = row.names(cur_coef)
+        cur_coef = cur_coef[grep('(Intercept)',cur_coef,fixed=T,invert = T)]
+        cur_fprd = names(cur_data)[grep('HCPG',names(cur_data),invert = T)]
+        if (!all(cur_coef == cur_fprd)) {
+          stop('Behav model selection: formula predictors and predictors in resulting model do not align!')
+        }
+        cvme_vec[ii]       = full_mods_ms[[ii]]$cvme
       }
-      cvme_vec[ii]       = full_mods_ms[[ii]]$cvme
+      
+      # picking the best model and extracting
+      # the survived features (in case lasso is used)
+      cur_mod_sel   = which(min(cvme_vec) == cvme_vec)
+      
+      if (length(cur_mod_sel) > 1) {
+        warning('We have a tie in performance for exp params extraction. Using simpler model.')
+        cur_mod_sel = cur_mod_sel[1]
+      }
+      ms_reps_v[rr] = cur_mod_sel
     }
     
-    # picking the best model and extracting
-    # the survived features (in case lasso is used)
-    cur_mod_sel   = which(min(cvme_vec) == cvme_vec)
-    
-    if (length(cur_mod_sel) > 1) {
-      warning('We have a tie in performance for exp params extraction. Using simpler model.')
-      cur_mod_sel = cur_mod_sel[1]
-    }
-    ms_reps_v[rr] = cur_mod_sel
+    # take the modus cur_mod_sel, if tie, it takes lower complexity model
+    cur_mod_sel   = as.numeric(names(sort(table(ms_reps_v),decreasing=TRUE)[1]))
+    cur_mod_sel_n = names(featmod_coefs_cv[[kk]])[cur_mod_sel]
+  } else {
+    cur_mod_sel   = 'kitchen_sink'
+    cur_mod_sel_n = 9999 
   }
   
-  # take the modus cur_mod_sel, if tie, it takes lower complexity model
-  cur_mod_sel   = as.numeric(names(sort(table(ms_reps_v),decreasing=TRUE)[1]))
-  cur_mod_sel_n = names(featmod_coefs_cv[[kk]])[cur_mod_sel]
-  
+  # packing the winning model
   featmod_coefs_sel = list()
-  # extracting the survived features
-  # cur featmod coefs
-  tmp = featmod_coefs_cv[[kk]][[cur_mod_sel_n]]
-  # survived coefs
-  # survived coefs (taking all even if some are 0; it is about the whole model)
-  cur_surv = names(tmp)[grep('HCPG',names(tmp),invert = T)]
+  
+  if (put_all_behav_vars_in) {
+    # this is experimental to check what happens if we do not do model selection
+    tmp = agk.merge.dfs(featmod_coefs_cv[[kk]],'HCPG', dat_match)
+    # survived coefs (taking all even if some are 0; it is about the whole model)
+    cur_surv = names(tmp)[grep('HCPG',names(tmp),invert = T)]
+  } else {
+    # extracting the survived features
+    # cur featmod coefs
+    tmp = featmod_coefs_cv[[kk]][[cur_mod_sel_n]]
+    # survived coefs
+    # survived coefs (taking all even if some are 0; it is about the whole model)
+    cur_surv = names(tmp)[grep('HCPG',names(tmp),invert = T)]
+  }
+  
   # pack the winning model
   featmod_coefs_sel[[1]] = tmp
-  
+
   # from selected features
   for (ii in 1:length(featmod_coefs_sel)) {
     if (ii == 1) {
@@ -320,7 +335,7 @@ if (use_behav_params & c_mod == F) {
     featmod_coefs_sel_cv      = list()
     featmod_coefs_sel_cv[[1]] = cur.mod.selection.fun.c(1)
   }
- 
+  
   # unpack the featmod_results and make a vector which tells me which model was selected
   featmod_coefs_sel_cv_list = list()
   #cur_mod_sel_vec           = c()
@@ -701,7 +716,7 @@ if (all_alphas == F | (all_alphas == T & c_mod == T) | (use_behav_params == F & 
     full_mod_cv      = list()
     full_mod_cv[[1]] = cur.compl.model.fun.c(1)
   }
- 
+  
   # unpack
   actual_full_mod_cv         = list()
   scaled_train_convar        = list()
@@ -742,11 +757,17 @@ for (kk in 1:length(flds)) {
     # get the current chosen params extraction model
     # and the pertinent parameters of the test sub
     cur_mod_sel_n            = cur_mod_sel_n_vec[kk]
-    cur_df                   = fm[[cur_mod_sel_n]]
-    cur_modpe_coef           = subset(cur_df,row.names(cur_df) %in% cur_test_sub)
-    cur_modpe_coef           = agk.clean.intercept.name(cur_modpe_coef)
+    if (!put_all_behav_vars_in) {
+      cur_df                   = fm[[cur_mod_sel_n]]
+      # select the correct test subjects
+      cur_modpe_coef           = subset(cur_df,row.names(cur_df) %in% cur_test_sub)
+      cur_modpe_coef           = agk.clean.intercept.name(cur_modpe_coef)
+    } else {
+      cur_df                   = agk.merge.dfs(fm,'HCPG',dat_match)
+      cur_modpe_coef           = subset(cur_df,row.names(cur_df) %in% cur_test_sub)
+    }
+
   }
-  
   
   if (add_cr_pp || add_cr_ra) {
     # getting the additional features coefs
@@ -767,6 +788,7 @@ for (kk in 1:length(flds)) {
   
   if ((add_cr_pp || add_cr_ra) & use_behav_params) {
     # merging extracted model params and additional features params
+    #cur_test_data_coefs   = agk.merge.df.by.row.names(cur_modpe_coef,cur_test_data_coefs,dat_match)
     cur_test_data_coefs   = agk.merge.df.by.row.names(cur_modpe_coef,cur_test_data_coefs)
   }
   
@@ -793,9 +815,31 @@ for (kk in 1:length(flds)) {
     # correcting test data for training data's scaling
     # behav data
     if (c_mod == F & use_behav_params) {
-      cur_scaling_info                   = featmod_coefs_cv_msd[[kk]][[cur_mod_sel_n]]
-      cur_sd                             = cur_scaling_info$`scaled:scale`
-      cur_m                              = cur_scaling_info$`scaled:center`
+      if (!put_all_behav_vars_in) {
+        cur_scaling_info                   = featmod_coefs_cv_msd[[kk]][[cur_mod_sel_n]]
+        cur_sd                             = cur_scaling_info$`scaled:scale`
+        cur_m                              = cur_scaling_info$`scaled:center`
+        cur_sd                             = agk.clean.intercept.name(cur_sd)
+        
+      } else {
+        cur_scaling_info                   = featmod_coefs_cv_msd[[kk]][[1]]
+        cur_sd                             = cur_scaling_info$`scaled:scale`
+        cur_m                              = cur_scaling_info$`scaled:center`
+        names(cur_sd)                      = paste0(names(featmod_coefs_cv_msd[[kk]])[1],'_',names(cur_sd))
+        names(cur_m)                      = paste0(names(featmod_coefs_cv_msd[[kk]])[1],'_',names(cur_m))
+        for (tt in 2:length(featmod_coefs_cv_msd[[kk]])) {
+          cur_scaling_info                   = featmod_coefs_cv_msd[[kk]][[tt]]
+          sd_tmp                             = cur_scaling_info$`scaled:scale`
+          mn_tmp                             = cur_scaling_info$`scaled:center`
+          names(sd_tmp)    = paste0(names(featmod_coefs_cv_msd[[kk]])[tt],'_',names(sd_tmp))
+          names(mn_tmp)    = paste0(names(featmod_coefs_cv_msd[[kk]])[tt],'_',names(mn_tmp))
+          cur_sd                             = c(cur_sd,sd_tmp)
+          cur_m                              = c(cur_m,mn_tmp)
+        }
+        names(cur_sd) = gsub('.','_of_',names(cur_sd),fixed=T)
+        names(cur_m)  = gsub('.','_of_',names(cur_m),fixed=T)
+        names(cur_test_data_coefs) = gsub('.','_of_',names(cur_test_data_coefs),fixed=T)
+      }
       cur_test_data_coefs[names(cur_sd)] = scale(cur_test_data_coefs[names(cur_sd)],center = cur_m,scale=cur_sd)
     }
     
@@ -833,7 +877,8 @@ predictions_orig_l = list()
 truth              = c()
 truth_list         = list() # to tally after each CV-fold (no pred pooling)
 for (kk in 1:length(flds)) {
-  cur_test_params = test_data_coefs[[kk]]
+  cur_test_params      = test_data_coefs[[kk]]
+  cur_test_params$HCPG = NULL
   disp('Trying prediction now!')
   if (which_ML == 'ML') {
     # linear glmnet case

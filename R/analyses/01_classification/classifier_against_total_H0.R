@@ -43,7 +43,7 @@ get.truth.4 = function() {
 }
 
 # set runs
-runs0 = 500
+runs0 = 1000
 
 # under 0
 # pooled
@@ -86,14 +86,18 @@ for (ii in 1:runs0) {
 # 1023: fMRI predictors with AIC cleaning
 # 1024: fMRI predictor with BIC cleaning
 # 1025: fMRI predictor with no cleaning
-setwd(paste0(root_wd, '/results/1023'))
+setwd(paste0(root_wd, '/results/1011'))
 e = new.env()
-load('MRT_predGrp1_rounds_wio_onlyPhys_no_perm.RData',envir = e)
+#load('MRT_predGrp1_rounds_wio_onlyPhys_no_perm.RData',envir = e)
+load('POSTPILOT_HCPG_predGrp1_rounds_wio_noaddfeat_no_perm.RData',envir = e)
+e$CV_res_list_op = e$CV_res_list
+
 
 cur_fun_auc = function(x) {return(x$auc)}
 cur_fun_acc = function(x) {return(x$acc$accuracy)}
 cur_fun_sen = function(x) {return(x$acc$cur_sens)}
 cur_fun_spe = function(x) {return(x$acc$cur_spec)}
+# add precision
 
 auc         = mean(unlist(lapply(e$CV_res_list_op,FUN = cur_fun_auc)))
 acc         = mean(unlist(lapply(e$CV_res_list_op,FUN = cur_fun_acc)))
@@ -131,13 +135,17 @@ p = p + geom_vline(aes(xintercept = mean(auc)),colour = 'green',size= 1.5)
 print(p+theme_bw())
 
 ## p-values test glmnet
-message('The p-values for fMRI classifier for AUC, accuracy, sensitivity, specificity are:')
+message('The values and p-values for fMRI classifier for AUC, accuracy, sensitivity, specificity are:')
 message(' ')
+message(auc)
 message(1-agk.density_p.c(all_aucs,auc))
 message(' ')
+message(acc)
 message(1-agk.density_p.c(all_accs,acc))
 message(' ')
+message(sen)
 message(1-agk.density_p.c(all_sens,sen))
 message(' ')
+message(spe)
 message(1-agk.density_p.c(all_spec,spe))
 

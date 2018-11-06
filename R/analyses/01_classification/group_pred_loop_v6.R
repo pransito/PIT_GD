@@ -23,7 +23,8 @@
 
 # PREPARATION FOR FOREIGN RUN =================================================
 rm(list=ls())
-base_lib = 'E:/Google Drive/'
+base_lib = 'C:/Users/genaucka/Google Drive/'
+#base_lib = 'E:/Google Drive/'
 root_wd  = paste0(base_lib,'Library/01_Projects/PIT_GD/R/analyses/')
 setwd(root_wd)
 load('.RData')
@@ -52,15 +53,11 @@ agk.load.ifnot.install("foreign")
 agk.load.ifnot.install("parallel")
 agk.load.ifnot.install("foreach")
 agk.load.ifnot.install("doSNOW")
-agk.load.ifnot.install("simpleboot")
 agk.load.ifnot.install("GPArotation")
 agk.load.ifnot.install("nnet")
 agk.load.ifnot.install("msm")
 agk.load.ifnot.install("foreign")
 agk.load.ifnot.install('readxl')
-agk.load.ifnot.install("rJava")
-agk.load.ifnot.install("xlsx")
-agk.load.ifnot.install('e1071')
 agk.load.ifnot.install('ptw')
 agk.load.ifnot.install('lmPerm')
 agk.load.ifnot.install('pROC')
@@ -74,6 +71,7 @@ agk.load.ifnot.install('MatchIt')
 agk.load.ifnot.install('optmatch')
 agk.load.ifnot.install('WhatIf')
 agk.load.ifnot.install('Matching')
+agk.load.ifnot.install('OptimalCutpoints')
 
 # WHAT TO RUN =================================================================
 # just the behavioral parameter sets
@@ -86,7 +84,7 @@ outer_cv_wiaddfeat_noperm = 0 # adding physio
 outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
 noout_cv_wiaddfeat_noperm = 0 # adding physio
 
-# only peripheral-physiological / MRI
+# only peripheral-physiological / MRI / rating (all saved under "phys")
 outer_cv_addfeaton_noperm = 0 # Ha only, i.e. physio/MRI  
 outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
 noout_cv_addfeaton_noperm = 0 # to get the complete model 
@@ -99,6 +97,13 @@ do_report                 = 0
 do_report_no_added_feat   = 0
 do_report_with_added_feat = 0
 do_report_feat_only       = 0
+
+message('Careful, the addfeat only option will overwrite results with current addfeat selection under "phys".')
+
+# for report use permut (F) or c_mod (T)?
+c_mod_report          = T
+# Any reporting of p-values against null? Set to F if you do that in a separate script.
+report_CV_p           = T
 
 # *permutation is turned off; it is very slow and technically needs to be done
 # for each round a large amount of times; gets infeasable; instead we are
@@ -113,11 +118,20 @@ do_report_feat_only       = 0
 # folder is described here:
 # 300 : p. physio pred (PIT GD behav paper)
 # 1010: behav predictions (PIT GD behav paper) 
+# 1011: behav predictions (PIT GD behav paper) (NO within-z; class; cleaning AIC)
+# 1012: behav predictions (PIT GD behav paper) (NO within-z; class; control)
 
 # 1023: fMRI predictors with AIC cleaning
 # 1024: fMRI predictor with BIC cleaning
 # 1025: fMRI predictor with no cleaning
-runs                  = 10 
+# 15: kitchen sink model; all behav in
+# 18: rating only as a "cue reactivity model only"
+# 20: behav; within-z; class; cleaning AIC
+# 21: behav; NO within-z; class; cleaning AIC
+# 22: behav; NO within-z; mse; cleaning AIC
+# 23: behav; NO within-z; auc; cleaning AIC
+# 24: behav; NO within-z; auc; no cleaning; control model instead with smoking
+runs                  = 18
 
 # set some seed to ensure reproducability
 des_seed              = 6993
@@ -129,7 +143,7 @@ est_models            = 1
 # in case of gaussian (metric), then 'mse' is used
 # 'class' is possible; or 'auc': careful auc needs a certain number of test samples
 # I programmed to use k = 5 for innerCV in case of auc
-type_measure_binomial = "class"
+type_measure_binomial = "auc"
 # should unit tests for balanced CVfolds be used in wioCV script?
 # should always be 1
 unit_test_strat_outCV = 1
@@ -154,10 +168,6 @@ des_stand_glmnet      = T
 strat_innerCV         = T
 # estimate the control model (never except below it gets switched on)
 c_mod                 = F
-# for report use permut (F) or c_mod?
-c_mod_report          = T
-# Any reporting of p-values against null? Set to F if you do that somewhere else.
-report_CV_p           = F
 # all alphas: then no model selection with just ridge but complete elastic net 
 # for all models immediately
 all_alphas            = F
@@ -173,7 +183,17 @@ if (which_study == 'MRT') {
 # mean model? glmnet or svm
 fullm_reps            = 10
 # set to ML; meaning glmnet elastic net machine learning
-which_ML               = 'ML' 
+which_ML              = 'ML'
+# regress out covs (third option; valid option now)
+regress_out_covs      = 0
+# regress out covs (cleaning MRI data) information criterion
+clean_inf_crit        = 'AIC'
+# what predictors to clean for
+if (which_study == 'MRT') {
+  pred_to_clean = c('edu_years')
+} else {
+  pred_to_clean = c('smoking_ftdt')
+}
 
 # PARAMETERS TO SET: Behavior =================================================
 # add nonlinear behav models? currently not available; must be 0
@@ -193,12 +213,15 @@ ridge_behav_models_anew = F
 ridge_bm_alphas         = c(0,0.5,1)
 # how many repetitions to ensure stable params?
 ridge_bv_reps           = 20
+# add physio parameters (pp) in the behavioral models instead of category
+# this is an alternative way to model physio PIT (for p.physio paper)
+mod_physio_val          = F
+# standardize feat vector within subject? (only if at least two values)
+behav_within_sub_z      = F
+# kitchen sink model: put all variables of all behav models in one
+put_all_behav_vars_in   = F
 
 # PARAMETERS TO SET: Physio/MRI ===============================================
-# regress out covs (third option; valid option now)
-regress_out_covs     = 1
-# regress out covs (cleaning MRI data) information criterion
-clean_inf_crit       = 'AIC'
 # only for additional features (physio); 0 for none, 1 for
 # lasso regression, 2 caret's rfe with randomForest
 # 3 is simply checking if t-test is yielding sig. group result
@@ -210,20 +233,20 @@ des_feat_sel         = 0
 do_con_constant      = 0
 # master add cue reactivity/PIT predictors to full model: peripheral physiology/MRI
 # can be set to 0, if feature selection and adding should not be done on this
-# recommended is 1, so that all scnearios work; including phys/mri only
-add_cr_pp_ma         = 1
+# recommended is 1, so that all scenarios work; including phys/mri only
+add_cr_pp_ma         = 0
 # master add cue reactivity predictors to full model: ratings
 # can be set to 0, if feature selection and adding should not be done on this
-# legacy: should never be done, cause ratings post-experiment
+# legacy: should never be done, cause ratings are post-experiment
 add_cr_ra_ma         = 0
 # plot rating params
 # only for generating plots of ratings/p. physio
 plot_ratings         = 1
-# ... plots for p. physio? not relevant in MRI study
+# ... plots for p. physio? not relevant in MRI study, nor in behav only; only for p.physio
 plot_physio          = 0
 
 # PROCESS PREPS ===============================================================
-# do not make any settings here
+# DO NOT make any changes here
 pred_grp = 1
 if (strat_innerCV == F) {
   unit_test_strat_innCV = F
@@ -244,12 +267,28 @@ do_feat_sel = des_feat_sel
 add_cr_pp   = add_cr_pp_ma
 add_cr_ra   = add_cr_ra_ma
 
+if (which_study == 'MRT_and_POSTPILOT') {
+  add_cr_pp   = 0
+  add_cr_ra   = 0
+}
+
+# get the operating system
+cur_os = Sys.info()
+cur_os = cur_os['sysname']
+if (cur_os == 'Windows') {
+  curpbfun = winProgressBar
+  curpbset = setWinProgressBar
+} else {
+  curpbfun = txtProgressBar
+  curpbset = setTxtProgressBar
+}
+
 # run the init of (the CV of) group pred
 source('group_pred_init_v6.R')
 
 # get the original matching subjects group
 sub_grp_matching = featmod_coefs_bcp[[1]][c('HCPG')]
-if (add_cr_pp_ma == T) {
+if (add_cr_pp_ma == T | add_cr_pp_ma == T) {
   stopifnot(all(row.names(featmod_coefs_bcp[[1]]) == row.names(feature_clusters_bcp[[2]])))
 }
 
@@ -264,100 +303,18 @@ while (myperms_ok == 0) {
   myperms_ok = all(duplicated(myperms) == FALSE)
 }
 
-# OUTERCV, NO/WITH ADDED FEATURES (PHYSIO) NOPERM =============================
+# OUTERCV, NO/WITH ADDED FEATURES (PHYSIO, MRI, RATING) NOPERM ================
 if (outer_cv_noaddfeat_noperm | outer_cv_wiaddfeat_noperm) {
-  # doing the looping for outer crossvalidation, no added phys,
-  # without permutation
-  set.seed(des_seed)
-  # CV style: with outer CV
-  CV = 'wio'
-  # no additional features (physio)
-  do_feat_sel = 0
-  # add cue reactivity predictors to full model: peripheral physiology
-  # can be set to 0, if feature selection and adding should not be done on this
-  if (outer_cv_wiaddfeat_noperm) {
-    add_cr_pp   = 1
-    add_cr_ra   = 0
-  } else {
-    add_cr_pp   = 0
-    add_cr_ra   = 0
-  }
-  # run the models (for param extraction in exp)
-  est_models  = 1
-  # run the init (the CV of) group pred
-  source('group_pred_init_v6.R')
-  # no permutation
-  do_permut   = F
-  CV_res_list = list()
-  cur_title   = "Rounds outer and inner CV"
-  pb = winProgressBar(title = cur_title, min = 0,
-                      max = runs, width = 300)
-  list_winning_model = list()
-  cur_mod_sel_vec    = c()
-  for(hh in 1:runs) {
-    source('group_pred_6_wioCV.R')
-    CV_res_list[[hh]]        = CV_res
-    setWinProgressBar(pb,hh, title=paste(cur_title, round(hh/runs*100),
-                                         "% done"))
-  }
-  close(pb)
-  
-  # saving
-  cur_home = getwd()
-  dir.create(file.path(cur_home, paste0('results/',runs)),recursive=T)
-  setwd(file.path(cur_home, paste0('results/',runs)))
-  if (outer_cv_wiaddfeat_noperm) {
-    save(file = paste0(which_study,'_predGrp',pred_grp,'_rounds_wio_wiaddfeat_no_perm.RData'),
-         list = c('CV_res_list','fm','des_seed'))
-  } else {
-    save(file = paste0(which_study,'_predGrp',pred_grp,'_rounds_wio_noaddfeat_no_perm.RData'),
-         list = c('CV_res_list','fm','des_seed'))
-  }
-
-  setwd(cur_home)
+  if (outer_cv_wiaddfeat_noperm) {addfeat = T} else {addfeat = F}
+  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat,add_cr_pp_ma,add_cr_pp_ma,des_seed)
 }
 
-# OUTERCV, NO ADDED FEATURES (PHYSIO) WITHPERM ================================
+# OUTERCV, NO/WITH ADDED FEATURES (PHYSIO, MRI, RATINGS) WITHPERM =============
 if (outer_cv_noaddfeat_wiperm) {
-  # doing the looping for outer crossvalidation;
-  # with permutation
-  set.seed(des_seed)
-  # no additional features (physio)
-  do_feat_sel = 0
-  # CV style: with outer CV
-  CV = 'wio'
-  # add cue reactivity predictors to full model: peripheral physiology
-  # can be set to 0, if feature selection and adding should not be done on this
-  add_cr_pp   = 0
-  add_cr_ra   = 0
-  # run the models (for param extraction in exp)
-  est_models  = 1
-  # run the init (the CV of) group pred
-  source('group_pred_init_v6.R')
-  # with permutation
-  do_permut    = T
-  CVp_res_list = list()
-  cur_title    = "Rounds outer and inner CV with permutations"
-  pb = winProgressBar(title = cur_title, min = 0,
-                      max = runs, width = box_width)
-  for(hh in 1:runs) {
-    source('group_pred_6_wioCV.R')
-    CVp_res_list[[hh]]        = CV_res
-    setWinProgressBar(pb,hh, title=paste(cur_title,round(hh/runs*100),
-                                         "% done"))
-  }
-  close(pb)
-  
-  # saving
-  cur_home = getwd()
-  dir.create(file.path(cur_home, paste0('results/',runs)),recursive=T)
-  setwd(file.path(cur_home, paste0('results/',runs)))
-  save(file =  paste0(which_study,'_predGrp',pred_grp,'_rounds_wio_noaddfeat_wi_perm.RData'),
-       list = c('CVp_res_list','fm','des_seed'))
-  setwd(cur_home)
+  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat = F,add_cr_pp_ma,add_cr_pp_ma,des_seed)
 }
 
-# NOOUTERCV, NO ADDED FEATURES (PHYSIO) NOPERM ================================
+# NOOUTERCV, NO/WITH ADDED FEATURES (PHYSIO) NOPERM ===========================
 if (noout_cv_noaddfeat_noperm | noout_cv_wiaddfeat_noperm) {
   # doing the looping for noOuter CV;
   # used for model parameter estimation
@@ -370,8 +327,8 @@ if (noout_cv_noaddfeat_noperm | noout_cv_wiaddfeat_noperm) {
   # add cue reactivity predictors to full model: peripheral physiology
   # can be set to 0, if feature selection and adding should not be done on this
   if (noout_cv_noaddfeat_noperm) {
-    add_cr_pp   = 0
-    add_cr_ra   = 0  
+    add_cr_pp   = add_cr_pp_ma
+    add_cr_ra   = add_cr_ra_ma
   } else {
     add_cr_pp   = 1
     add_cr_ra   = 0 
@@ -445,7 +402,7 @@ if (noout_cv_noaddfeat_noperm | noout_cv_wiaddfeat_noperm) {
   setwd(cur_home)
 }
 
-# OUTERCV, ADDED FEATURES ONLY (PHYSIO) NOPERM ================================
+# OUTERCV, ADDED FEATURES ONLY (PHYSIO, MRI, RATING) NOPERM ===================
 if (outer_cv_addfeaton_noperm) {
   # doing the looping for outer crossvalidation, ONLY phys,
   # without permutation 
@@ -469,7 +426,7 @@ if (outer_cv_addfeaton_noperm) {
   # do no permutation
   do_permut      = F
   CV_res_list_op = list()
-  cur_title      = "Rounds outer and inner CV only physio"
+  cur_title      = "Rounds outer and inner CV only physio, mri, or rating"
   pb             = winProgressBar(title = cur_title, min = 0,
                                   max = runs, width = box_width)
   for(hh in 1:runs) {
@@ -489,7 +446,7 @@ if (outer_cv_addfeaton_noperm) {
   setwd(cur_home)
 }
 
-# OUTERCV, ADDED FEATURES ONLY (PHYSIO) WITHPERM ==============================
+# OUTERCV, ADDED FEATURES ONLY (PHYSIO, MRI, RATING) WITHPERM =================
 if (outer_cv_addfeaton_wiperm) {
   # doing the looping for outer crossvalidation; ONLY physio;
   # with permutation 
@@ -534,7 +491,7 @@ if (outer_cv_addfeaton_wiperm) {
   setwd(cur_home)
 }
 
-# NOOUTERCV, ADDED FEATURES ONLY (PHYSIO) NOPERM ==============================
+# NOOUTERCV, ADDED FEATURES ONLY (PHYSIO, MRI, RATING) NOPERM =================
 if (noout_cv_addfeaton_noperm) {
   # doing the looping for noOuter CV; only physio
   # used for model parameter estimation
@@ -675,6 +632,11 @@ if (do_report) {
     CVp_res_list    = CVcm_res_list
     CVp_res_list_op = CVcm_res_list
   }
+  
+  # get the current relevant CV_res_list
+  if (exists('CV_res_list_op')) {
+    CV_res_list = CV_res_list_op
+  }
 }
 
 
@@ -700,6 +662,14 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     auc    = c()
     roc_pl = list()
     rocl   = list()
+    osens    = c()   # optimal sensitivity (optimal cutoff post-hoc)
+    ospec    = c()   # optimal specificity (optimal cutoff post-hoc)
+    osens_p  = c()   # optimal sensitivity (optimal cutoff post-hoc)
+    ospec_p  = c()   # optimal specificity (optimal cutoff post-hoc)
+    prec     = c()   # precision rate (of the detected how many are actually detected ones)
+    prec_p   = c()   # precision under 0
+    bacc     = c()   # balanced accuracy
+    bacc_p   = c()   # b.a. under 0
     for (ii in 1:length(CVp_res_list)) {
       accs_p[ii]   = CVp_res_list[[ii]]$acc$accuracy
       accs[ii]     = CV_res_list[[ii]]$acc$accuracy
@@ -717,6 +687,8 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
       coru_p[[ii]] = CVp_res_list[[ii]]$coru
       mse[[ii]]    = CV_res_list[[ii]]$mse
       mse_p[[ii]]  = CVp_res_list[[ii]]$mse
+      bacc[ii]     = mean(c(spec[ii], sens[ii]))
+      bacc_p[ii]   = mean(c(spec_p[ii], sens_p[ii]))
     }
     
     # make new ROC objects
@@ -724,8 +696,18 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
       # non_permuted
       predictor  = rocl[[ii]]$original.predictor
       response   = rocl[[ii]]$original.response
+      # get the precision
+      cur_cm    = confusionMatrix(as.factor(response),as.factor(ifelse(predictor>=0, 'PG','HC')))
+      prec[ii]  = as.numeric(cur_cm$byClass['Precision'])
       response   = ifelse(response == 'PG',1,0)
       predictor  = agk.scale_range(predictor,0,1)
+      # get the optimal sen and spe
+      cur_df    = data.frame(X = rocl[[ii]]$original.predictor, status = rocl[[ii]]$original.response) 
+      cur_o     = optimal.cutpoints(X = "X", status = "status", data =cur_df,methods ="MaxSpSe",tag.healthy = 'HC')
+      cur_sum   = summary(cur_o)
+      osens[ii] = cur_sum$MaxSpSe$Global$optimal.cutoff$Se[1]
+      ospec[ii] = cur_sum$MaxSpSe$Global$optimal.cutoff$Sp[1]
+      
       rocl[[ii]] = roc(response,predictor)
       auc[ii]    = auc(rocl[[ii]])
       rocl[[ii]] = smooth( rocl[[ii]],n = 500)
@@ -733,8 +715,18 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
       # permuted (or control model)
       predictor    = roc_pl[[ii]]$original.predictor
       response     = roc_pl[[ii]]$original.response
+      # get the precision
+      cur_cm     = confusionMatrix(as.factor(response),as.factor(ifelse(predictor>=0, 'PG','HC')))
+      prec_p[ii] = as.numeric(cur_cm$byClass['Precision'])
       response     = ifelse(response == 'PG',1,0)
       predictor    = agk.scale_range(predictor,0,1)
+      # get the optimal sen and spe
+      cur_df    = data.frame(X = roc_pl[[ii]]$original.predictor, status = roc_pl[[ii]]$original.response) 
+      cur_o     = optimal.cutpoints(X = "X", status = "status", data =cur_df,methods ="MaxSpSe",tag.healthy = 'HC')
+      cur_sum   = summary(cur_o)
+      osens_p[ii] = cur_sum$MaxSpSe$Global$optimal.cutoff$Se[1]
+      ospec_p[ii] = cur_sum$MaxSpSe$Global$optimal.cutoff$Sp[1]
+      
       roc_pl[[ii]] = roc(response,predictor)
       auc_p[ii]    = auc(roc_pl[[ii]])
       
@@ -748,35 +740,65 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
       }
     }
     
-    # print the median of acc, sens, spec
-    acc_sens_spec       = data.frame(accs,sens,spec,auc)
-    acc_sens_spec_p     = data.frame(accs_p,sens_p,spec_p,auc_p)
+    # print the mean of acc, sens, spec
+    acc_sens_spec       = data.frame(auc,accs,sens,spec,osens,ospec,prec,bacc)
+    acc_sens_spec_p     = data.frame(auc_p,accs_p,sens_p,spec_p,osens_p,ospec_p,prec_p,bacc_p)
     med_ac_se_sp        = lapply(acc_sens_spec,FUN=mean)
-    med_ac_se_sp_np_ci  = lapply(acc_sens_spec,FUN=agk.boot.ci,
-                                 cur_fun=mean,R=3000,lower=0.025,upper=0.975)
-    med_ac_se_sp_npp_ci = lapply(acc_sens_spec_p,FUN=agk.boot.ci,
-                                 cur_fun=mean,R=3000,lower=0.025,upper=0.975)
-    disp('Mean accuracy, sensitivity, specificity across CV rounds.')
-    print(med_ac_se_sp)
+    med_ac_se_sp        = lapply(acc_sens_spec,FUN=mean)
+    med_ac_se_sp_np_ci  = lapply(acc_sens_spec,FUN=agk.mean.quantile,
+                                 lower=0.025,upper=0.975)
+    med_ac_se_sp_npp_ci = lapply(acc_sens_spec_p,FUN=agk.mean.quantile,
+                                 lower=0.025,upper=0.975)
+    disp('Mean (CI) AUC, accuracy, sensitivity, specificity, opt sens, opt spec, precision, balanced acc. across CV rounds.')
+    print(med_ac_se_sp_np_ci )
+    disp('UNDER H0: Mean (CI) AUC, accuracy, sensitivity, specificity, opt sens, opt spec, precision, balanced acc. across CV rounds.')
+    print(med_ac_se_sp_npp_ci )
+    
+    # p-values
+    # auc
+    diffs_auc    = auc - auc_p
+    cur_p        = agk.density_p.c(diffs_auc,0)
+    disp("Probability that AUC has improved under assumption of 0-hypothesis.")
+    print(cur_p)
     # acc
-    diffs        = accs - accs_p
-    cur_p        = agk.density_p.c(diffs,0)
-    disp("Probability that permuted and non-permuted CV'd accuracy of algorithms are the same.")
+    diffs_accs   = accs - accs_p
+    cur_p        = agk.density_p.c(diffs_accs,0)
+    disp("Probability that acc has improved under assumption of 0-hypothesis.")
     print(cur_p)
     # sens
-    diffs        = sens - sens_p
-    cur_p        = agk.density_p.c(diffs,0)
-    disp("Probability that permuted and non-permuted CV'd sensitivity of algorithms are the same.")
+    diffs_sens   = sens - sens_p
+    cur_p        = agk.density_p.c(diffs_sens,0)
+    disp("Probability that sens has improved under assumption of 0-hypothesis.")
     print(cur_p)
     # spec
-    diffs        = spec - spec_p
-    cur_p        = agk.density_p(diffs,0)
-    disp("Probability that permuted and non-permuted CV'd specificity of algorithms are the same.")
+    diffs_spec   = spec - spec_p
+    cur_p        = agk.density_p(diffs_spec,0)
+    disp("Probability that spec has improved under assumption of 0-hypothesis.")
     print(cur_p)
-    # auc
-    diffs        = auc - auc_p
-    cur_p        = agk.density_p.c(diffs,0)
-    disp("Probability that permuted and non-permuted CV'd smoothed ROC-AUC of algorithms are the same.")
+    # osens
+    diffs_osens  = osens - osens_p
+    cur_p        = agk.density_p(diffs_osens,0)
+    disp("Probability that optimal sens has improved under assumption of 0-hypothesis.")
+    print(cur_p)
+    # ospec
+    diffs_ospec  = ospec - ospec_p
+    cur_p        = agk.density_p(diffs_ospec,0)
+    disp("Probability that optimal spec has improved under assumption of 0-hypothesis.")
+    print(cur_p)
+    # precision
+    diffs_prec   = prec - prec_p
+    cur_p        = agk.density_p(diffs_prec,0)
+    disp("Probability that precision has improved under assumption of 0-hypothesis.")
+    print(cur_p)
+    # balanced accuracy
+    diffs_bacc   = bacc - bacc_p
+    cur_p        = agk.density_p(diffs_bacc,0)
+    disp("Probability that balanced accuracy has improved under assumption of 0-hypothesis.")
+    print(cur_p)
+    # all performance measures combined
+    diffs_ospec  = diffs_auc + diffs_accs + diffs_sens + diffs_spec + diffs_osens + diffs_ospec + diffs_prec + diffs_bacc
+    cur_p        = agk.density_p(diffs_ospec,0)
+    disp("Probability that combined performance measure improvements have occured under assumption of 0-hypothesis.")
     print(cur_p)
     
     # ROC curve (get all the coordinates)
@@ -839,7 +861,8 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     # plot
     # real
     plot(spec_mci$V1[order(spec_mci$V1)],sens_mci$V1[order(spec_mci$V1)],xlim = c(1,0),type='l',lty=1,
-         xlab = 'specificity', ylab = 'sensitivity',col='blue',lwd=4)
+         xlab = 'specificity', ylab = '\r\nsensitivity',col='blue',lwd=4, font.lab=2,cex.lab = 2)
+    
     lines(spec_mci$V2[order(spec_mci$V1)],sens_mci$V2[order(spec_mci$V1)],xlim = c(1,0),col='blue',lty=1)
     lines(spec_mci$V3[order(spec_mci$V1)],sens_mci$V3[order(spec_mci$V1)],xlim = c(1,0),col='blue',lty=1)
     
@@ -849,11 +872,32 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     lines(specl_mci$V3[order(spec_mci$V1)],sensl_mci$V3[order(spec_mci$V1)],xlim = c(1,0),col='red',lty=2)
     
     abline(a=1,b=-1,lty=4,lwd=2)
-    title('Receiver-Operating-Curve for Behavioral Classifier')
-    legend(1.02, 1.02, c("ROC of classifier with 95% bounds", "ROC of control classifier with 95% bounds", "hypothetical null"), col = c('blue', 'red', 'black'),
-           text.col = "black", lty = c(1, 2, 4),
+    title('Receiver-Operating-Curve for Behavioral Classifier',cex.main = 1.5)
+    legend(1.02, 1.02, c("ROC of classifier with 95% bounds", "ROC of control classifier with 95% bounds", "hypothetical null"),
+           col = c('blue', 'red', 'black'),
+           text.col = "black", lty = c(1, 2, 2),
            merge = TRUE, bg = "gray90")
     
+    par(mar=c(5,5,4.1,2.1))
+    
+    # density plots with two densities
+    # plots also the density of the performance of the classifier
+    Ha_auc               = auc
+    Ha_auc               = rep_len(Ha_auc,length.out = length(auc_p))
+    cur_dat_gl           = data.frame(null_classifier = auc_p,full_classifier = Ha_auc,classifier = 'elastic net')
+    cur_dat              = rbind(cur_dat_gl) #rbind(cur_dat_be,cur_dat_gl,cur_dat_sv)
+    cur_dat              = melt(cur_dat,id.vars = c('classifier'))
+    cur_dat$AUC_ROC      = cur_dat$value
+    cur_dat$value        = NULL
+    
+    # plot
+    p = ggplot(cur_dat,aes(x=AUC_ROC, fill=variable)) + geom_density(alpha=0.25)
+    p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for elastic net classifier compared to null-classifier')
+    p = p + geom_vline(aes(xintercept = mean(auc)),colour = 'green',size= 1.5)
+    p = p + theme_bw()
+    p = p + theme(axis.text=element_text(size=14, face = "bold"),
+                  axis.title=element_text(size=20,face="bold"))
+    print(p)
   }
   
   if (!do_report_feat_only) {
@@ -956,84 +1000,96 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
   ci_res$coef[ci_res$coef == 'Intercept']    = 'Int_behav_model'
   ci_res$coef[ci_res$coef == 'X.Intercept.'] = 'Int_classifier'
   
-  # names simpler:
-  ci_res$coef = gsub('SS__grp01_noCov_','',ci_res$coef)
-  ci_res$coef = gsub('SS__','',ci_res$coef)
-  ci_res$coef = gsub('PicGamOnxAcc','PIT',ci_res$coef)
-  ci_res$coef = gsub('PicGamOnxacc','PIT',ci_res$coef)
-  ci_res$coef = gsub('ROI_LR_','',ci_res$coef)
-  ci_res$coef = gsub('_LR','',ci_res$coef)
-  ci_res$coef = gsub('noCov_PPI_','',ci_res$coef)
-  ci_res$coef = gsub('X','x',ci_res$coef)
+  labels_sources = c("catgambling","catnegative","catpositive","Int_behav_model","Int_classifier","smoking_ftdt") 
+  ci_res$coef    = factor(ci_res$coef)
+  labels_betas   = agk.recode(levels(ci_res$coef),labels_sources,
+                              c("gambling cues","negative cues","positive cues","intercept behavioral model","intercept of classifier","smoking severity"))
+  ci_res$coef    = factor(ci_res$coef, levels = levels(ci_res$coef), labels = labels_betas)
+  
+  if (which_study == 'MRT') {
+    # names simpler:
+    ci_res$coef = gsub('SS__grp01_noCov_','',ci_res$coef)
+    ci_res$coef = gsub('SS__','',ci_res$coef)
+    ci_res$coef = gsub('PicGamOnxAcc','PIT',ci_res$coef)
+    ci_res$coef = gsub('PicGamOnxacc','PIT',ci_res$coef)
+    ci_res$coef = gsub('ROI_LR_','',ci_res$coef)
+    ci_res$coef = gsub('_LR','',ci_res$coef)
+    ci_res$coef = gsub('noCov_PPI_','',ci_res$coef)
+    ci_res$coef = gsub('X','x',ci_res$coef)
+  }
   
   p = ggplot(data = ci_res, aes(coef,mean))
   p = p+geom_bar(stat="identity")
   p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
-                        width = 0) + ylab("mean (95% CI over CV rounds)\n")
+                        width = 0) + ylab("mean (95% CI)\n")
   
-  p <- p + ggtitle("Estimated regression weights of winning model with CIs")
-  p = p + theme(text = element_text(size=20),
-                axis.text.x = element_text(angle=90, hjust=1)) 
+  p <- p + ggtitle("Estimated regression weights of winning model")
+  p = p + theme(text = element_text(size=25),
+                axis.text.x = element_text(angle=45, hjust=1)) 
+  p = p + xlab("regression weights")
   print(p)
   
-  # giving a grouped overview
-  grouping                                                  = rep(NA,length(ci_res$coef))
-  grouping[grep('^Pic',ci_res$coef)]                        = 'cue_reactivity'
-  grouping[grep('^PPI_Amy.*OrG',ci_res$coef)]               = 'Amy_to_OFC'
-  grouping[grep('^PPI_Amy.*StrAsCaud',ci_res$coef)]         = 'Amy_to_Striatum'
-  grouping[grep('^PPI_Amy.*StrAsPut',ci_res$coef)]          = 'Amy_to_Striatum'
-  grouping[grep('^PPI_Amy.*Acc',ci_res$coef)]               = 'Amy_to_Striatum'
-  grouping[grep('^PIT',ci_res$coef)]                        = 'PIT'
-  grouping[grep('^PPI_Acc_',ci_res$coef)]                   = 'Accumbens_to_Str_Amy'
-  ci_res$coef[ci_res$coef == 'x.grp_classifier_intercept.'] = 'Classifier_Icpt'
-  grouping[grep('Classifier_Icpt',ci_res$coef)]             = 'cue_reactivity'
-  
-  ci_res$grouping = factor(grouping,levels = c('cue_reactivity','PIT','Amy_to_OFC','Amy_to_Striatum','Accumbens_to_Str_Amy'),
-                           labels = c('cue reactivity','PIT','PPI PIT seed Amygdala to OFC','PPI PIT seed Amygdala to Accumbens','PPI PIT seed Accumbens to Amygdala'))
-  
-  # shorter names even
-  ci_res$coef = gsub('Accumbens','Acc',ci_res$coef)
-  ci_res$coef = gsub('Amygdala','Amy',ci_res$coef)
-  ci_res$coef = gsub('PPI','c',ci_res$coef)
-  ci_res$coef = gsub('PITx','PIT',ci_res$coef)
-  ci_res$coef = gsub('c_','c',ci_res$coef)
-  ci_res$coef = gsub('StrAso','StrAs',ci_res$coef)
-  ci_res$coef = gsub('StrAs','',ci_res$coef)
-  ci_res$coef = gsub('ROI_','',ci_res$coef)
-  ci_res$coef = gsub('Picgam_','gam_',ci_res$coef)
-  ci_res$coef = gsub('Picneg_','neg_',ci_res$coef)
-  ci_res$coef = gsub('Picpos_','pos_',ci_res$coef)
-  ci_res$coef = gsub('^PITpos_','pos_',ci_res$coef)
-  ci_res$coef = gsub('^PITneg_','neg_',ci_res$coef)
-  ci_res$coef = gsub('^PITgam_','gam_',ci_res$coef)
-  ci_res$coef = gsub('^cAmy','Amy',ci_res$coef)
-  ci_res$coef = gsub('^cAcc','Acc',ci_res$coef)
-  ci_res$coef = gsub('^AccPITgam','Acc_PITgam',ci_res$coef)
-  ci_res$coef = gsub('^AccPITneg','Acc_PITneg',ci_res$coef)
-  ci_res$coef = gsub('^AccPITpos','Acc_PITpos',ci_res$coef)
-  
-  
-  # plotting grouped
-  message('displaying the set grouped')
-  #ci_res_red = ci_res[abs(ci_res$mean) > 1,]
-  ci_res_red = ci_res
-  
-  p = ggplot(data = ci_res_red, aes(coef,mean))
-  p = p+geom_bar(stat="identity")
-  p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
-                        width = 0) + ylab("mean (95% CI over CV rounds)\n\n\n")
-  
-  p <- p + ggtitle("Estimated regression weights with CIs") + theme_bw()
-  p = p + theme(text = element_text(size=15),
-                axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
-  p = p + facet_wrap(~ grouping, scales = "free_x",nrow=3,ncol=2)
-  print(p)
-  
-  # check how many betas sig
-  ci_res_upper_lower = as.matrix(ci_res[c('upper','lower')])
-  cur_fun = function(x) {
-    return(sign(x[1]) == sign(x[2])) 
+  if (which_study == 'MRT') {
+    # giving a grouped overview
+    grouping                                                  = rep(NA,length(ci_res$coef))
+    grouping[grep('^Pic',ci_res$coef)]                        = 'cue_reactivity'
+    grouping[grep('^PPI_Amy.*OrG',ci_res$coef)]               = 'Amy_to_OFC'
+    grouping[grep('^PPI_Amy.*StrAsCaud',ci_res$coef)]         = 'Amy_to_Striatum'
+    grouping[grep('^PPI_Amy.*StrAsPut',ci_res$coef)]          = 'Amy_to_Striatum'
+    grouping[grep('^PPI_Amy.*Acc',ci_res$coef)]               = 'Amy_to_Striatum'
+    grouping[grep('^PIT',ci_res$coef)]                        = 'PIT'
+    grouping[grep('^PPI_Acc_',ci_res$coef)]                   = 'Accumbens_to_Str_Amy'
+    ci_res$coef[ci_res$coef == 'x.grp_classifier_intercept.'] = 'Classifier_Icpt'
+    grouping[grep('Classifier_Icpt',ci_res$coef)]             = 'cue_reactivity'
+    
+    ci_res$grouping = factor(grouping,levels = c('cue_reactivity','PIT','Amy_to_OFC','Amy_to_Striatum','Accumbens_to_Str_Amy'),
+                             labels = c('cue reactivity','PIT','PPI PIT seed Amygdala to OFC','PPI PIT seed Amygdala to Accumbens','PPI PIT seed Accumbens to Amygdala'))
+    
+    # shorter names even
+    ci_res$coef = gsub('Accumbens','Acc',ci_res$coef)
+    ci_res$coef = gsub('Amygdala','Amy',ci_res$coef)
+    ci_res$coef = gsub('PPI','c',ci_res$coef)
+    ci_res$coef = gsub('PITx','PIT',ci_res$coef)
+    ci_res$coef = gsub('c_','c',ci_res$coef)
+    ci_res$coef = gsub('StrAso','StrAs',ci_res$coef)
+    ci_res$coef = gsub('StrAs','',ci_res$coef)
+    ci_res$coef = gsub('ROI_','',ci_res$coef)
+    ci_res$coef = gsub('Picgam_','gam_',ci_res$coef)
+    ci_res$coef = gsub('Picneg_','neg_',ci_res$coef)
+    ci_res$coef = gsub('Picpos_','pos_',ci_res$coef)
+    ci_res$coef = gsub('^PITpos_','pos_',ci_res$coef)
+    ci_res$coef = gsub('^PITneg_','neg_',ci_res$coef)
+    ci_res$coef = gsub('^PITgam_','gam_',ci_res$coef)
+    ci_res$coef = gsub('^cAmy','Amy',ci_res$coef)
+    ci_res$coef = gsub('^cAcc','Acc',ci_res$coef)
+    ci_res$coef = gsub('^AccPITgam','Acc_PITgam',ci_res$coef)
+    ci_res$coef = gsub('^AccPITneg','Acc_PITneg',ci_res$coef)
+    ci_res$coef = gsub('^AccPITpos','Acc_PITpos',ci_res$coef)
+    
+    
+    # plotting grouped
+    message('displaying the set grouped')
+    #ci_res_red = ci_res[abs(ci_res$mean) > 1,]
+    ci_res_red = ci_res
+    
+    p = ggplot(data = ci_res_red, aes(coef,mean))
+    p = p+geom_bar(stat="identity")
+    p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
+                          width = 0) + ylab("mean (95% CI over CV rounds)\n\n\n")
+    
+    p <- p + ggtitle("Estimated regression weights with CIs") + theme_bw()
+    p = p + theme(text = element_text(size=15),
+                  axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
+    p = p + facet_wrap(~ grouping, scales = "free_x",nrow=3,ncol=2)
+    print(p)
+    
+    # check how many betas sig
+    ci_res_upper_lower = as.matrix(ci_res[c('upper','lower')])
+    cur_fun = function(x) {
+      return(sign(x[1]) == sign(x[2])) 
+    }
+    sum(apply(ci_res_upper_lower,MARGIN = 1,FUN = cur_fun))
   }
-  sum(apply(ci_res_upper_lower,MARGIN = 1,FUN = cur_fun))
-  
 }
+
+

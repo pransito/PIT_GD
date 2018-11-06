@@ -135,45 +135,19 @@ if (which_study == 'MRT' & add_cr_pp_ma) {
   cr_agg_pp = cr_agg_pp_m
 }
 
-
-
 # cleaning cr_agg_pp
 if (add_cr_pp_ma & which_study == 'MRT') {
   if (regress_out_covs) {
     if (!exists('cr_agg_pp_cleaned')) {
-      cr_agg_pp_uncleaned = cr_agg_pp
-      disp('Cleaning cr_agg_pp from influence of unmatched covariates of no interest...')
-      # align subjects
-      cur_rn               = row.names(cr_agg_pp)[row.names(cr_agg_pp) %in% dat_match$VPPG]
-      cr_agg_pp            = subset(cr_agg_pp, row.names(cr_agg_pp) %in% dat_match$VPPG)
-      row.names(cr_agg_pp) = cur_rn
-      # test if subjects aligned
-      stopifnot(length(dat_match$VPPG) == length(row.names(cr_agg_pp)))
-      stopifnot(all(dat_match$VPPG == row.names(cr_agg_pp)))
-      if (which_study == 'MRT') {
-        preds = dat_match[c('edu_years')]
-      } else if (which_study == 'POSTPILOT_HCPG') {
-        preds = dat_match[c('smoking_ftdt')]
-      }
-      cr_agg_pp_cleaned    = lapply(cr_agg_pp,FUN=agk.regress.out.c,rob=F,inf_crit=clean_inf_crit,preds=preds,ro_info = 1,des_degree = 1)
-      cur_fun_df           = function(x) {return(x$'res')}
-      cur_fun_ro           = function(x) {return(x$ro)}
-      cr_agg_pp_cleaned_df = as.data.frame(lapply(cr_agg_pp_cleaned,FUN=cur_fun_df))
-      cr_agg_pp_cleaned_ro = unlist(lapply(cr_agg_pp_cleaned,FUN=cur_fun_ro))
-      message('I cleaned so many variables of the cr_agg_pp data frame (0 not cleaned, 1 cleaned)')
-      print(table(cr_agg_pp_cleaned_ro))
-      cr_agg_pp_cleaned            = cr_agg_pp_cleaned_df
-      cr_agg_pp                    = cr_agg_pp_cleaned
-      row.names(cr_agg_pp)         = cur_rn
-      row.names(cr_agg_pp_cleaned) = cur_rn
-      disp('Done.')
+      vars_to_cov       = pred_to_clean
+      res               = agk.clean.vars(cr_agg_pp,dat_match,vars_to_cov,clean_inf_crit)
+      cr_agg_pp_cleaned = res$cr_agg_pp_cleaned
+      cr_agg_pp         = res$cr_agg_pp
     } else {
       cr_agg_pp = cr_agg_pp_cleaned
     }
   }
 }
-
-
 
 # set deviance measure
 cur_family = "binomial"
@@ -253,46 +227,95 @@ if (acc_num == 1) {
 
 if (est_models == 1) {
   
-  # legacy; but needs to stay for now
-  clmList = lmList
-  
-  # lmlist
-  a         = clmList(accept_reject ~ 1 | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  ac        = clmList(accept_reject ~ cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  laec      = clmList(accept_reject ~ gain+loss+ed_abs+cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  lac       = clmList(accept_reject ~ gain+loss+cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  laeci     = clmList(accept_reject ~ (gain+loss+ed_abs)*cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  laci      = clmList(accept_reject ~ (gain+loss)*cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  lae       = clmList(accept_reject ~ gain+loss+ed_abs | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  la        = clmList(accept_reject ~ gain+loss | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  # ratio lmlist (no mu, please! drop it! it's enough!)
-  lar       = clmList(accept_reject ~ ratio | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  larc      = clmList(accept_reject ~ ratio + cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  larci     = clmList(accept_reject ~ ratio*cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  
-  # charpentier lmlist (same as la but without intercept, then mu and lambda can be analytically computed)
-  laCh      = clmList(accept_reject ~ 0 + gain + loss | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
-  # Charpentier per category
-  laChci    = clmList(accept_reject ~ 0 + gain + loss + gain.catgambling + gain.catnegative + gain.catpositive +       
-                        loss.catgambling + loss.catnegative + loss.catpositive | subject,
-                      data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+  if (!mod_physio_val) {
+    # legacy; but needs to stay for now
+    clmList = lmList
+    
+    # lmlist
+    a         = clmList(accept_reject ~ 1 | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    ac        = clmList(accept_reject ~ cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    laec      = clmList(accept_reject ~ gain+loss+ed_abs+cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    lac       = clmList(accept_reject ~ gain+loss+cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    laeci     = clmList(accept_reject ~ (gain+loss+ed_abs)*cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    laci      = clmList(accept_reject ~ (gain+loss)*cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    lae       = clmList(accept_reject ~ gain+loss+ed_abs | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    la        = clmList(accept_reject ~ gain+loss | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    # ratio lmlist (no mu, please! drop it! it's enough!)
+    lar       = clmList(accept_reject ~ ratio | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    larc      = clmList(accept_reject ~ ratio + cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    larci     = clmList(accept_reject ~ ratio*cat | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    
+    # charpentier lmlist (same as la but without intercept, then mu and lambda can be analytically computed)
+    laCh      = clmList(accept_reject ~ 0 + gain + loss | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    # Charpentier per category
+    laChci    = clmList(accept_reject ~ 0 + gain + loss + gain.catgambling + gain.catnegative + gain.catpositive +       
+                          loss.catgambling + loss.catnegative + loss.catpositive | subject,
+                        data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    
+    # packing (in order of complexity)
+    fm = list()
+    fm$a       = a
+    fm$ac      = ac
+    fm$lar     = lar
+    fm$laCh    = laCh
+    fm$la      = la
+    fm$lae     = lae
+    fm$larc    = larc
+    fm$lac     = lac
+    fm$laec    = laec
+    fm$larci   = larci
+    fm$laci    = laci
+    fm$laeci   = laeci
+    fm$laChci  = laChci
+    
+  } else {
+    # with mod_physio_val
+    # so valence and arousal can modulate choice behavior
+    
+    # legacy; but needs to stay for now
+    clmList = lmList
+    
+    # lmlist
+    a         = clmList(accept_reject ~ 1 | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    ap        = clmList(accept_reject ~ scr_arousal + cozy_valence | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    laep      = clmList(accept_reject ~ gain+loss+ed_abs+scr_arousal + cozy_valence | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    lap       = clmList(accept_reject ~ gain+loss+scr_arousal + cozy_valence | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    laepi     = clmList(accept_reject ~ (gain+loss+ed_abs)*(scr_arousal+cozy_valence) | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    lapi      = clmList(accept_reject ~ (gain+loss)*(scr_arousal+cozy_valence) | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    lae       = clmList(accept_reject ~ gain+loss+ed_abs | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    la        = clmList(accept_reject ~ gain+loss | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    # ratio lmlist (no mu, please! drop it! it's enough!)
+    lar       = clmList(accept_reject ~ ratio | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    larp      = clmList(accept_reject ~ ratio + (scr_arousal+cozy_valence) | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    larpi     = clmList(accept_reject ~ ratio*(scr_arousal+cozy_valence) | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    
+    # charpentier lmlist (same as la but without intercept, then mu and lambda can be analytically computed)
+    laCh      = clmList(accept_reject ~ 0 + gain + loss | subject,data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    # Charpentier per category [TODO!]
+    #laChci    = clmList(accept_reject ~ 0 + gain + loss + gain.catgambling + gain.catnegative + gain.catpositive +       
+    #                      loss.catgambling + loss.catnegative + loss.catpositive | subject,
+    #                    data = data_pdt,family = needed_family,na.action = NULL,pool = do_pool)
+    
+    # packing (in order of complexity)
+    fm = list()
+    fm$a       = a
+    fm$ap      = ap
+    fm$lar     = lar
+    fm$laCh    = laCh
+    fm$la      = la
+    fm$lae     = lae
+    fm$larp    = larp
+    fm$lap     = lap
+    fm$laep    = laep
+    fm$larpi   = larpi
+    fm$lapi    = lapi
+    fm$laepi   = laepi
+    #fm$laChci  = laChpi
+    
+  }
 }
 
-# packing (in order of complexity)
-fm = list()
-fm$a       = a
-fm$ac      = ac
-fm$lar     = lar
-fm$laCh    = laCh
-fm$la      = la
-fm$lae     = lae
-fm$larc    = larc
-fm$lac     = lac
-fm$laec    = laec
-fm$larci   = larci
-fm$laci    = laci
-fm$laeci   = laeci
-fm$laChci  = laChci
+
 
 # backup the fm
 fm_bcp = fm
@@ -404,6 +427,24 @@ if (initial_scale) {
   fm = lapply(fm,FUN=agk.scale.ifpossible)
 }
 
+# Within subject z-scoring of feature vectors
+if (behav_within_sub_z) {
+  for (ff in 1:length(fm)) {
+    if (length(fm[[ff]]) >= 2) {
+      fm[[ff]] = as.data.frame(t(scale(t(fm[[ff]]))))
+    }
+  }
+}
+
+# Regress out covariates
+if (regress_out_covs) {
+  for (ff in 1:length(fm)) {
+    vars_to_cov       = pred_to_clean
+    res               = agk.clean.vars(fm[[ff]],dat_match,vars_to_cov,clean_inf_crit)
+    fm[[ff]]          = res$cr_agg_pp
+  }
+}
+
 # getting the coefficient data frames per model: packing into featmod_coefs
 disp('Packing fm into featmod_coefs')
 featmod_coefs = list()
@@ -459,43 +500,25 @@ featmod_coefs_bcp = featmod_coefs
 # }
 
 # getting other features ready for analysis
+# scaling (not done in 'with outer CV')
+if (initial_scale) {
+  disp('Scaling additional features overall (NOT RECOMMENDED!).')
+} else {
+  disp('Not scaling additional features overall.')
+}
 
-
-if (add_cr_pp  == 1 & add_cr_ra  == 0) {
-  # ADDING OTHER FEATURES (PHYSIO)
-  # getting the phys feature cluster
-  tmp_phys            = cr_agg_pp
-
-  # scaling (not done in with outer CV)
-  if (initial_scale) {
-    disp('Scaling additional features overall (NOT RECOMMENDED!).')
-    tmp_phys    = as.data.frame(scale(tmp_phys))
-  } else {
-    disp('Not scaling additional features overall.')
-  }
-  
-} else if ((add_cr_pp  == 1 || add_cr_ra  == 1) & which_study == 'MRT') {
+if (add_cr_pp  == 1 || add_cr_ra  == 1) {
   # ADDING OTHER FEATURES (E.G. PHYSIO)
   # getting the rat and phys feature cluster
   tmp         = tmp_exp
   exp_params  = names(tmp)
-  tmp$subject = row.names(tmp)
-  tmp_rat     = merge(tmp,cr_agg_ra,by = "subject",all.x = T)
+  tmp_rat     = agk.merge.df.by.row.names(tmp,cr_agg_ra)
   tmp_rat     = tmp_rat[!names(tmp_rat) %in% exp_params]
-  tmp_rat     = tmp_rat
   rat_params  = names(tmp_rat)
   rat_params  = rat_params[!rat_params %in% c('subject')]
-  # take sub variable out
-  row.names(tmp_rat) = tmp_rat$subject
-  tmp_rat$subject    = NULL
+  tmp_rat$subject = NULL
   tmp_phys    = agk.merge.df.by.row.names(tmp_rat,cr_agg_pp)
   tmp_phys    = tmp_phys[!names(tmp_phys) %in% rat_params]
-  tmp_phys    = tmp_phys
-  
-  # add row.names
-  row.names(tmp_rat)  = tmp_rat$subject
-  row.names(tmp_phys) = tmp_phys$subject
-  tmp_rat$subject     = NULL
   tmp_phys$subject    = NULL
   
   # scaling (not done in with outer CV)
@@ -505,12 +528,13 @@ if (add_cr_pp  == 1 & add_cr_ra  == 0) {
   }
   
   # make sure that only used subjects are in additional pp
+  tmp_phys = subset(tmp_phys, row.names(tmp_phys) %in% unique(data_pdt$subject))
   tmp_rat  = subset(tmp_rat, row.names(tmp_rat) %in% unique(data_pdt$subject))
-  
 }
 
-# make sure that only used subjects are in additional pp
-tmp_phys = subset(tmp_phys, row.names(tmp_phys) %in% unique(data_pdt$subject))
+
+
+
 
 # packing selected model coefs plus other feature clusters
 feature_clusters      = list()

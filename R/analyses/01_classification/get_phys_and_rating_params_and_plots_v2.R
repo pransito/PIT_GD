@@ -49,16 +49,25 @@ for (ii in 1:length(des_vars)) {
   }
 }
 
+
+
 if (plot_ratings) {
   cfint = cfint_list[[1]]
   for(ii in 2:length(cfint_list)) {
     cfint = rbind(cfint,cfint_list[[ii]])
   }
   
+  # change the order
+  cfint$variable = factor(cfint$variable,
+                          levels =  c('Valence', 'Arousal', 'Dominance',
+                                      'Elicits_Craving','Representative_for_Gambles','Representative_for_Negative','Representative_for_Positive'),
+                          labels = c('Valence', 'Arousal', 'Dominance',
+                                     'Elicits_Craving','Representative_for_Gambles','Representative_for_Negative','Representative_for_Positive'))
+  
   # plotting (faceting by category)
   mRat  = ggplot(cfint, aes(HCPG, mean,fill=variable))
   mRat  = mRat + labs(x='Group', y=paste('Mean (',0.95*100,'% CI, bootstrapped)'))
-  mRat  = mRat + ggtitle("Ratings of different categories of stimuli")
+  mRat  = mRat + ggtitle("Ratings of different categories of cues")
   mRat  = mRat + geom_bar(position="dodge", stat="identity")
   dodge = position_dodge(width=0.9)
   mRat  = mRat + geom_bar(position=dodge, stat="identity")
@@ -160,38 +169,38 @@ if (which_study != 'MRT') {
   }
   
   # interaction cue reactivity*group
-  if (plot_physio) {
-    cfint_list = list()
-    lmlcf      = list()
-    for (ii in 1:length(des_vars)) {
-      cur_form        = as.formula(paste(des_vars[ii],'~ cat | subject'))
-      cur_lml         = lmList(cur_form,data = data_pdt)
-      cur_lml         = coef(cur_lml)
-      lmlcf[[ii]]     = cur_lml
-      cur_lml         = cur_lml[-which(names(cur_lml) == '(Intercept)')]
-      cur_lml$HCPG    = agk.recode.c(row.names(cur_lml),dat_match$VPPG,dat_match$HCPG)
-      cur_lml         = melt(cur_lml)
-      
-      cur_form = as.formula('value ~ variable + HCPG')
-      cfint = aggregate(cur_form,data = cur_lml,FUN=agk.boot.ci,
-                        cur_fun = mean,lower=0.025, upper=0.975,R=5000)
-      
-      cfint = as.data.frame(cbind(cfint[c('variable','HCPG')],cfint[[3]]))
-      names(cfint)[c(3:5)] = c('mean','lower','upper')
-      cfint$channel = des_vars[ii]
-      cfint_list[[ii]] = cfint
-    }
-    cfint = cfint_list[[1]]
-    for(ii in 2:length(cfint_list)) {
-      cfint = rbind(cfint,cfint_list[[ii]])
-    }
+  cfint_list = list()
+  lmlcf      = list()
+  for (ii in 1:length(des_vars)) {
+    cur_form        = as.formula(paste(des_vars[ii],'~ cat | subject'))
+    cur_lml         = lmList(cur_form,data = data_pdt)
+    cur_lml         = coef(cur_lml)
+    lmlcf[[ii]]     = cur_lml
+    cur_lml         = cur_lml[-which(names(cur_lml) == '(Intercept)')]
+    cur_lml$HCPG    = agk.recode.c(row.names(cur_lml),dat_match$VPPG,dat_match$HCPG)
+    cur_lml         = melt(cur_lml)
     
-    # plotting (faceting by category)
-    names(cfint)[names(cfint) == 'HCPG'] = 'Group'
-    cfint$Group                          = agk.recode.c(cfint$Group,'PG','GD')
+    cur_form = as.formula('value ~ variable + HCPG')
+    cfint = aggregate(cur_form,data = cur_lml,FUN=agk.boot.ci,
+                      cur_fun = mean,lower=0.025, upper=0.975,R=5000)
+    
+    cfint = as.data.frame(cbind(cfint[c('variable','HCPG')],cfint[[3]]))
+    names(cfint)[c(3:5)] = c('mean','lower','upper')
+    cfint$channel = des_vars[ii]
+    cfint_list[[ii]] = cfint
+  }
+  cfint = cfint_list[[1]]
+  for(ii in 2:length(cfint_list)) {
+    cfint = rbind(cfint,cfint_list[[ii]])
+  }
+  
+  # plotting (faceting by category)
+  names(cfint)[names(cfint) == 'HCPG'] = 'Group'
+  cfint$Group                          = agk.recode.c(cfint$Group,'PG','GD')
+  if (plot_physio) {
     mRat  = ggplot(cfint, aes(variable, mean,fill=Group))
     mRat  = mRat + labs(x='Group', y=paste('Mean (',0.95*100,'% CI, bootstrapped)'))
-    mRat  = mRat + ggtitle("Physio reactions to different categories of stimuli")
+    mRat  = mRat + ggtitle("Physio reactions to different categories of cues")
     mRat  = mRat + geom_bar(position="dodge", stat="identity")
     dodge = position_dodge(width=0.9)
     mRat  = mRat + geom_bar(position=dodge, stat="identity")
@@ -226,7 +235,7 @@ if (which_study != 'MRT') {
   }
   
   ## Plots means and CIs of physio variables (GAMBLE Phase) =====================
-  if (plot_physio) {
+  if (which_study == 'POSTPILOT_HCPG') {
     cr_pp   = c("corr","zygo","SCR")
     if (physio_sum_fun == 'all') {
       # use all the available summary stats
@@ -303,17 +312,19 @@ if (which_study != 'MRT') {
     cfint$channel = gsub('_auc','',cfint$channel)
     cfint$channel = gsub('_gambleStim','',cfint$channel)
     
-    # plotting (faceting by category)
-    mRat  = ggplot(cfint, aes(HCPG, mean,fill=variable))
-    mRat  = mRat + labs(x='Group', y=paste('Mean (',0.95*100,'% CI, bootstrapped)'))
-    mRat  = mRat + ggtitle("Physio reaction shifts in gamble phase: interactions (PIT effects)")
-    mRat  = mRat + geom_bar(position="dodge", stat="identity")
-    dodge = position_dodge(width=0.9)
-    mRat  = mRat + geom_bar(position=dodge, stat="identity")
-    mRat  = mRat + geom_errorbar(aes(ymin = lower, ymax = upper), position=dodge, width=0.25) 
-    mRat  = mRat + facet_grid(channel ~ .)
-    mRatg = mRat + theme_bw() #+ theme(legend.position="bottom")
-    print(mRatg)
+    if (plot_physio) {
+      # plotting (faceting by category)
+      mRat  = ggplot(cfint, aes(HCPG, mean,fill=variable))
+      mRat  = mRat + labs(x='Group', y=paste('Mean (',0.95*100,'% CI, bootstrapped)'))
+      mRat  = mRat + ggtitle("Physio reaction shifts in gamble phase: interactions (PIT effects)")
+      mRat  = mRat + geom_bar(position="dodge", stat="identity")
+      dodge = position_dodge(width=0.9)
+      mRat  = mRat + geom_bar(position=dodge, stat="identity")
+      mRat  = mRat + geom_errorbar(aes(ymin = lower, ymax = upper), position=dodge, width=0.25) 
+      mRat  = mRat + facet_grid(channel ~ .)
+      mRatg = mRat + theme_bw() #+ theme(legend.position="bottom")
+      print(mRatg)
+    }
   }
 }
 

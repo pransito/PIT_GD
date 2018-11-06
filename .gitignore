@@ -8,3 +8,5 @@ Screening_Export/
 R/analysis/01_classification/results/
 desktop.ini
 R/analyses/desktop.ini
+*.csv
+results/

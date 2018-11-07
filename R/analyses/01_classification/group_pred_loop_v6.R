@@ -198,9 +198,6 @@ if (which_study == 'MRT') {
 # PARAMETERS TO SET: Behavior =================================================
 # add nonlinear behav models? currently not available; must be 0
 add_nonlinear_behav     = 0
-# use PDT behav model and predict MRT?
-# here you should only do nooCV estimate and report
-PDT_behav_apply_on_MRI  = 0
 # repeat the model selection over many kinds of foldings, take modus
 ms_reps                 = 10
 # ridge the behavioral models after having been fit? (use the ridged versions)

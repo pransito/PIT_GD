@@ -1,4 +1,4 @@
-agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_ma,des_seed) {
+agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_ma,des_seed,addfeat_only = F,c_mod=F) {
   # wrapper function to run the CV loop
   #
   # outer_CV: if yes then algorithm is cross-validated and all other CV is nested
@@ -20,33 +20,44 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
   # add_cr_pp_ma: should ratings be added?
   # 
   # des_seed: a seed (some integer); keep constant to make results reproducible
+  #
+  # addfeat_only: only added features, no behavior; is a special case, so it needs this variable
+  #
+  # c_mod: control model; e.g. running only on covariates of no-interest
   
   ## processing the inputs
   set.seed(des_seed)
   if(outer_CV) {
     CV        = 'wio'
-    cur_title = "Rounds outer and inner CV. Estimating generalization performance."
+    if (addfeat_only) {
+      cur_title      = "Rounds outer and inner CV only physio, mri, or rating. Estimating generalization performance."
+    } else {
+      cur_title = "Rounds outer and inner CV. Estimating generalization performance."
+    }
   } else {
+    CV        = 'noo'
     cur_title = 'Rounds no outer CV. Estimating the complete model using nested CV.'
   }
+  if (addfeat_only) {cur_title = paste(cur_title,'Everything but behavioral data.')}
   if (do_permut) {cur_title = paste(cur_title,'With permutations.')}
   
   # add cue reactivity predictors to full model: peripheral physiology
   # can be set to 0, if feature selection and adding should not be done on this
-  if (outer_cv_wiaddfeat_noperm) {
-    add_cr_pp   = add_cr_pp_ma
-    add_cr_ra   = add_cr_ra_ma
-  } else {
-    add_cr_pp   = 0
-    add_cr_ra   = 0
+  add_cr_pp   = add_cr_pp_ma
+  add_cr_ra   = add_cr_ra_ma
+  # only physio,ratings,MRI?
+  if(addfeat_only) {
+    use_behav_params = F
   }
-  
+
   # old inputs (static)
-  do_feat_sel = 0
-  pred_grp    = 1
+  do_feat_sel = 0 # feature selection for MRI, rating, p.p.
+  pred_grp    = 1 # we only do group prediction, so never change
+  add_rt      = 0 # adding reaction time; experimental feature, not fully implemented
   
   # make file name for saving
-  if(addfeat)   {afnm = 'wiaddfeat'} else {afnm = 'noaddfeat'}
+  if(addfeat)      {afnm = 'wiaddfeat'} else {afnm = 'noaddfeat'}
+  if(addfeat_only) {afnm = 'onlyPhys'}
   if(do_permut) {dpnm = 'wi_perm'} else {dpnm = 'no_perm'}
   svfnm = paste('_rounds',CV,afnm,dpnm,sep='_')
   
@@ -57,6 +68,11 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
   # run the init (the CV of) group pred
   source('group_pred_init_v6.R')
   CV_res_list = list()
+  if (CV == 'noo') {
+    cur_mod_sel_nooCV           = c()
+    list_winning_model_c_nooCV  = list()
+    list_winning_model_l_nooCV  = list()
+  }
   # prep progress bar
   pb = curpbfun(title = cur_title, min = 0,max = runs, width = box_width)
   
@@ -69,13 +85,57 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
   for(hh in 1:runs) {
     source('group_pred_6_wioCV.R')
     CV_res_list[[hh]]        = CV_res
+    if (CV == 'noo') {
+      cur_mod_sel_nooCV[hh] = cur_mod_sel_n
+      
+      # getting the complete final model's coefs
+      full_mod_tmp = full_mod_cv[[1]]
+      if (!is.numeric(full_mod_tmp)) {
+        cur_labs = colnames(full_mod_tmp$coef)
+        cur_labs = gsub(cur_labs,pattern="pred_",replacement="")
+        cur_labs = gsub(cur_labs,pattern="(Intercept)",replacement="grp_classifier_intercept",fixed=T)
+        cur_coef = full_mod_tmp$coef
+      } else {
+        cur_labs = names(full_mod_tmp)
+        cur_coef = full_mod_tmp
+      }
+      
+      # packing
+      list_winning_model_c_nooCV[[hh]] = cur_coef
+      list_winning_model_l_nooCV[[hh]] = cur_labs
+      
+    }
     curpbset(pb,hh, title=paste(cur_title, round(hh/runs*100),"% done"))
   }
   close(pb)
-  # rename variable
+  
+  # rename variables
   if (do_permut) {
     CVp_res_list = CV_res_list
     CV_res_list  = NULL
+  }
+  if (CV == 'noo') {
+    CVnoo_res_list = CV_res_list
+    CV_res_list    = NULL
+  }
+  if (addfeat_only) {
+    if (CV == 'noo') {
+      CVnoo_res_list_op              = CV_res_list
+      list_winning_model_c_nooCV_op  = list_winning_model_c_nooCV
+      list_winning_model_l_nooCV_op  = list_winning_model_l_nooCV
+      cur_mod_sel_nooCV_op           = cur_mod_sel_nooCV
+      
+      list_winning_model_c_nooCV     = NULL
+      list_winning_model_l_nooCV     = NULL
+      cur_mod_sel_nooCV              = NULL
+    } else {
+      if (do_permut == F) {
+        CV_res_list_op = CV_res_list
+      } else {
+        CVp_res_list_op = CV_res_list
+      }
+    }
+    CV_res_list                    = NULL
   }
   
   ## saving
@@ -83,12 +143,66 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
   dir.create(file.path(cur_home, paste0('results/',runs)),recursive=T)
   setwd(file.path(cur_home, paste0('results/',runs)))
   if (do_permut == F) {
-    save(file = paste0(which_study,'_predGrp',pred_grp,svfnm,'.RData'),
-         list = c('CV_res_list','fm','des_seed'))
+    if (CV == 'wio') {
+      if (addfeat_only) {
+        cur_var_list = c('CV_res_list_op','fm','des_seed')
+      } else {
+        cur_var_list = c('CV_res_list','fm','des_seed')
+      }
+    } else if (CV == 'noo') {
+      if (addfeat_only) {
+        cur_var_list = c('list_winning_model_c_nooCV_op','list_winning_model_l_nooCV_op',
+                         'CVnoo_res_list_op','fm','des_seed')
+      } else {
+        cur_var_list = c('list_winning_model_c_nooCV','list_winning_model_l_nooCV',
+                         'CVnoo_res_list','cur_mod_sel_nooCV','fm','des_seed')
+      }
+
+    } else {
+      stop('CV has unknown value.')
+    }
+  } else if (do_permut == T) {
+    if (addfeat_only) {
+      cur_var_list = c('CVp_res_list_op','fm','des_seed')
+    } else {
+      cur_var_list = c('CVp_res_list','fm','des_seed')
+    }
   } else {
-    save(file = paste0(which_study,'_predGrp',pred_grp,svfnm,'.RData'),
-         list = c('CVp_res_list','fm','des_seed'))
+    stop('do_permut has unknown value')
   }
+  save(file = paste0(which_study,'_predGrp',pred_grp,svfnm,'.RData'),
+       list = cur_var_list)
+  setwd(cur_home)
+}
+
+
+### new case
+# OUTERCV, CONTROL MODEL NOPERM ===============================================
+# alternative to permutation
+# the control model; intercept only, or only the control variables
+if (outer_cv_c_model_noperm) {
+ 
+  # control model?
+  c_mod       = T
+  CVcm_res_list = list()
+  cur_title   = "Rounds outer and inner CV"
+  pb = winProgressBar(title = cur_title, min = 0,
+                      max = runs, width = 300)
+  list_winning_model = list()
+  for(hh in 1:runs) {
+    source('group_pred_6_wioCV.R')
+    CVcm_res_list[[hh]]        = CV_res
+    setWinProgressBar(pb,hh, title=paste(cur_title, round(hh/runs*100),
+                                         "% done"))
+  }
+  close(pb)
+  
+  # saving
+  cur_home = getwd()
+  dir.create(file.path(cur_home, paste0('results/',runs)),recursive=T)
+  setwd(file.path(cur_home, paste0('results/',runs)))
+  save(file = paste0(which_study,'_predGrp',pred_grp,'_rounds_wio_conmod_no_perm.RData'),
+       list = c('CVcm_res_list','fm','des_seed'))
   setwd(cur_home)
 }
 

@@ -75,6 +75,7 @@ agk.load.ifnot.install('OptimalCutpoints')
 
 # WHAT TO RUN =================================================================
 # just the behavioral parameter sets
+# TEST ALL ON 1
 outer_cv_noaddfeat_noperm = 1 # with outer CV, getting generalization error
 outer_cv_noaddfeat_wiperm = 0 # with permutation [not recommended*]
 noout_cv_noaddfeat_noperm = 1 # no outer CV, get class on whole sample
@@ -131,7 +132,7 @@ report_CV_p           = T
 # 22: behav; NO within-z; mse; cleaning AIC
 # 23: behav; NO within-z; auc; cleaning AIC
 # 24: behav; NO within-z; auc; no cleaning; control model instead with smoking
-runs                  = 18
+runs                  = 1
 
 # set some seed to ensure reproducability
 des_seed              = 6993
@@ -203,6 +204,8 @@ ms_reps                 = 10
 # ridge the behavioral models after having been fit? (use the ridged versions)
 # not recommended; slower computation
 ridge_behav_models      = F
+# in case of lmlist should residual sum of squares be pooled?
+do_pool                 = F
 # ridge the behavioral models after having been fit? (fit anew, otherwise load)
 # not recommended; slower computation
 ridge_behav_models_anew = F
@@ -241,6 +244,36 @@ add_cr_ra_ma         = 0
 plot_ratings         = 1
 # ... plots for p. physio? not relevant in MRI study, nor in behav only; only for p.physio
 plot_physio          = 0
+# which aggregate fun to be used for rating/physio/MRI variables
+agg_fun          = mean.rmna
+
+# PARAMETERS TO SET: General ==================================================
+# in glmnet final model which alphas to be tested?
+# CAREFUL: MODEL SELECTION PUT ON RIDGE (alpha=0) BY HAND; ALPHAS IGNORED!
+# This is to not unselect many or all predictors in predictor sets
+alphas          = c(0,0.05,0.1,0.2,0.4,0.8,0.95,1)
+# desired_lambdas
+# should always be NULL
+# however there seems to be a bug:
+# https://github.com/lmweber/glmnet-error-example/blob/master/glmnet_error_example.R
+# so need to use predefined lambdas, for the case this bug occurs
+des_lambdas      = exp(seq(log(0.001), log(10), length.out=100))
+# use model matrix (glmnetUtils)
+useModelFrame    = T
+doGrouped        = F
+# how many inner CV folds to be used for picking lambda
+# k = 10 recommended, 'LOOCV' is leave-one-out CV
+#cnfolds         = "LOOCV"
+cnfolds          = 10
+if (type_measure_binomial == 'auc') {
+  cnfolds        = 5
+}
+# k of the outer CV
+# if left empty then LOOCV will be used
+outer_k          = c(10)
+# do permutations? (for checking that CV procedure is not biased)
+# not for significance testing of the CV score: cause there is no certain CV estimate
+do_permut        = F
 
 # PROCESS PREPS ===============================================================
 # DO NOT make any changes here
@@ -280,11 +313,13 @@ if (cur_os == 'Windows') {
   curpbset = setTxtProgressBar
 }
 
-# get the function that wraps the looping of CV rounds
+# get the function that wraps the looping of CV rounds, and for initialization
 source('group_pred_loop_subf_v6.R')
+source('group_pred_init_v6.R')
 
 # run the init of (the CV of) group pred
-source('group_pred_init_v6.R')
+cur_res = agk.group.pred.init()
+agk.assign.envtoenv(cur_res,globalenv())
 
 # get the original matching subjects group
 sub_grp_matching = featmod_coefs_bcp[[1]][c('HCPG')]

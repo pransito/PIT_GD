@@ -53,6 +53,8 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_ra_m
   # only physio,ratings,MRI?
   if(addfeat_only) {
     use_behav_params = F
+  } else {
+    use_behav_params = T
   }
 
   # old inputs (static)
@@ -71,8 +73,12 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_ra_m
   # run the models (for param extraction in exp)
   # TODO: can we turn this off?
   est_models  = 1
+  # assign the variables created so far to global environment
+  agk.assign.envtoenv(environment(),globalenv())
   # run the init (the CV of) group pred
-  source('group_pred_init_v6.R')
+  cur_res = agk.group.pred.init()
+  agk.assign.envtoenv(cur_res,globalenv())
+  # initialize where we will collect the results
   CV_res_list = list()
   if (CV == 'noo') {
     cur_mod_sel_nooCV           = c()
@@ -173,7 +179,7 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_ra_m
       stop('CV has unknown value.')
     }
     
-    if (cv_mod) {
+    if (c_mod) {
       cur_var_list = c('CVcm_res_list','fm','des_seed')
     }
     

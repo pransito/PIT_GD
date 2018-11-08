@@ -1,4 +1,4 @@
-agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_ma,des_seed,addfeat_only = F,c_mod=F) {
+agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = F,c_mod=F) {
   # wrapper function to run the CV loop
   #
   # outer_CV: if yes then algorithm is cross-validated and all other CV is nested
@@ -34,6 +34,11 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
     } else {
       cur_title = "Rounds outer and inner CV. Estimating generalization performance."
     }
+    
+    if (c_mod) {
+      cur_title   = "Rounds outer and inner CV. Control model."
+    }
+    
   } else {
     CV        = 'noo'
     cur_title = 'Rounds no outer CV. Estimating the complete model using nested CV.'
@@ -58,6 +63,7 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
   # make file name for saving
   if(addfeat)      {afnm = 'wiaddfeat'} else {afnm = 'noaddfeat'}
   if(addfeat_only) {afnm = 'onlyPhys'}
+  if(c_mod)        {afnm = 'conmod'}
   if(do_permut) {dpnm = 'wi_perm'} else {dpnm = 'no_perm'}
   svfnm = paste('_rounds',CV,afnm,dpnm,sep='_')
   
@@ -118,6 +124,11 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
     CVnoo_res_list = CV_res_list
     CV_res_list    = NULL
   }
+  if (c_mod) {
+    CVcm_res_list = CV_res_list
+    CV_res_list   = NULL
+  }
+  
   if (addfeat_only) {
     if (CV == 'noo') {
       CVnoo_res_list_op              = CV_res_list
@@ -161,6 +172,11 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
     } else {
       stop('CV has unknown value.')
     }
+    
+    if (cv_mod) {
+      cur_var_list = c('CVcm_res_list','fm','des_seed')
+    }
+    
   } else if (do_permut == T) {
     if (addfeat_only) {
       cur_var_list = c('CVp_res_list_op','fm','des_seed')
@@ -174,36 +190,3 @@ agk.pred.group.CV = function(outer_CV,do_permut,addfeat,add_cr_pp_ma,add_cr_pp_m
        list = cur_var_list)
   setwd(cur_home)
 }
-
-
-### new case
-# OUTERCV, CONTROL MODEL NOPERM ===============================================
-# alternative to permutation
-# the control model; intercept only, or only the control variables
-if (outer_cv_c_model_noperm) {
- 
-  # control model?
-  c_mod       = T
-  CVcm_res_list = list()
-  cur_title   = "Rounds outer and inner CV"
-  pb = winProgressBar(title = cur_title, min = 0,
-                      max = runs, width = 300)
-  list_winning_model = list()
-  for(hh in 1:runs) {
-    source('group_pred_6_wioCV.R')
-    CVcm_res_list[[hh]]        = CV_res
-    setWinProgressBar(pb,hh, title=paste(cur_title, round(hh/runs*100),
-                                         "% done"))
-  }
-  close(pb)
-  
-  # saving
-  cur_home = getwd()
-  dir.create(file.path(cur_home, paste0('results/',runs)),recursive=T)
-  setwd(file.path(cur_home, paste0('results/',runs)))
-  save(file = paste0(which_study,'_predGrp',pred_grp,'_rounds_wio_conmod_no_perm.RData'),
-       list = c('CVcm_res_list','fm','des_seed'))
-  setwd(cur_home)
-}
-
-

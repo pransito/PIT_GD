@@ -75,9 +75,9 @@ agk.load.ifnot.install('OptimalCutpoints')
 
 # WHAT TO RUN =================================================================
 # just the behavioral parameter sets
-outer_cv_noaddfeat_noperm = 0 # with outer CV, getting generalization error
+outer_cv_noaddfeat_noperm = 1 # with outer CV, getting generalization error
 outer_cv_noaddfeat_wiperm = 0 # with permutation [not recommended*]
-noout_cv_noaddfeat_noperm = 0 # no outer CV, get class on whole sample
+noout_cv_noaddfeat_noperm = 1 # no outer CV, get class on whole sample
 
 # behavior plus peripheral-physiological stuff
 outer_cv_wiaddfeat_noperm = 0 # adding physio
@@ -89,7 +89,7 @@ outer_cv_addfeaton_noperm = 0 # Ha only, i.e. physio/MRI
 outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
 noout_cv_addfeaton_noperm = 0 # to get the complete model 
 
-outer_cv_c_model_noperm   = 0 # control model/null-model for classification;
+outer_cv_c_model_noperm   = 1 # control model/null-model for classification;
                               # not needed for MRI case (p-value comp in dfferent script)
 
 # what to report
@@ -280,6 +280,9 @@ if (cur_os == 'Windows') {
   curpbset = setTxtProgressBar
 }
 
+# get the function that wraps the looping of CV rounds
+source('group_pred_loop_subf_v6.R')
+
 # run the init of (the CV of) group pred
 source('group_pred_init_v6.R')
 
@@ -300,81 +303,53 @@ while (myperms_ok == 0) {
   myperms_ok = all(duplicated(myperms) == FALSE)
 }
 
-# OUTERCV, NO/WITH ADDED FEATURES (PHYSIO, MRI, RATING) NOPERM ================
-if (outer_cv_noaddfeat_noperm | outer_cv_wiaddfeat_noperm) {
-  if (outer_cv_wiaddfeat_noperm) {addfeat = T} else {addfeat = F}
-  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat,add_cr_pp_ma,add_cr_pp_ma,des_seed)
-}
 
-# OUTERCV, NO/WITH ADDED FEATURES (PHYSIO, MRI, RATINGS) WITHPERM =============
+
+
+outer_cv_c_model_noperm   = 0 # control model/null-model for classification;
+# not needed for MRI case (p-value comp in dfferent script)
+
+
+# just the behavioral parameter sets ==========================================
+if (outer_cv_noaddfeat_noperm) {
+  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat = F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed)
+}
 if (outer_cv_noaddfeat_wiperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat = F,add_cr_pp_ma,add_cr_pp_ma,des_seed)
+  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat = F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed)
+}
+if (noout_cv_noaddfeat_noperm) {
+  agk.pred.group.CV(outer_CV = F,do_permut = F,addfeat = F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed)
 }
 
-# NOOUTERCV, NO/WITH ADDED FEATURES (PHYSIO) NOPERM ===========================
-if (noout_cv_noaddfeat_noperm | noout_cv_wiaddfeat_noperm) {
-  if (noout_cv_wiaddfeat_noperm) {addfeat = T} else {addfeat = F}
-  agk.pred.group.CV(outer_CV = F,do_permut = F,addfeat,add_cr_pp_ma,add_cr_pp_ma,des_seed)
-}
-
-# OUTERCV, ADDED FEATURES ONLY (PHYSIO, MRI, RATING) NOPERM ===================
+# behavioral parameter sets plus additional features ==========================
+if (outer_cv_wiaddfeat_noperm | outer_cv_addfeaton_wiperm | noout_cv_wiaddfeat_noperm) {stopifnot(add_cr_pp_ma | add_cr_pp_ma)}
 if (outer_cv_addfeaton_noperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat=T,add_cr_pp_ma,add_cr_pp_ma,des_seed,addfeat_only = T)
+  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed)
 }
-
-# OUTERCV, ADDED FEATURES ONLY (PHYSIO, MRI, RATING) WITHPERM =================
 if (outer_cv_addfeaton_wiperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat=T,add_cr_pp_ma,add_cr_pp_ma,des_seed,addfeat_only = T)
+  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed)
+}
+if (noout_cv_addfeaton_noperm) {
+  agk.pred.group.CV(outer_CV = F,do_permut = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed)
 }
 
-# NOOUTERCV, ADDED FEATURES ONLY (PHYSIO, MRI, RATING) NOPERM =================
+# only additional features ===================================================
+if (outer_cv_addfeaton_noperm | outer_cv_addfeaton_wiperm | noout_cv_addfeaton_noperm) {stopifnot(add_cr_pp_ma | add_cr_pp_ma)}
+if (outer_cv_addfeaton_noperm) {
+  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = T)
+}
+if (outer_cv_addfeaton_wiperm) {
+  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = T)
+}
 if (noout_cv_addfeaton_noperm) {
-  agk.pred.group.CV(outer_CV = F,do_permut = F,addfeat=T,add_cr_pp_ma,add_cr_pp_ma,des_seed,addfeat_only = T)
+  agk.pred.group.CV(outer_CV = F,do_permut = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = T)
 }
 
 # OUTERCV, CONTROL MODEL NOPERM ===============================================
 # alternative to permutation
 # the control model; intercept only, or only the control variables
 if (outer_cv_c_model_noperm) {
-  # doing the looping for outer crossvalidation, no added phys,
-  # without permutation
-  set.seed(des_seed)
-  # no additional features (physio)
-  do_feat_sel = 0
-  # add cue reactivity predictors to full model: peripheral physiology
-  # can be set to 0, if feature selection and adding should not be done on this
-  add_cr_pp   = 0
-  add_cr_ra   = 0
-  # run the models (for param extraction in exp)
-  est_models  = 1
-  # run the init (the CV of) group pred
-  source('group_pred_init_v6.R')
-  # no permutation
-  do_permut   = F
-  # CV style
-  CV = 'wio'
-  # control model?
-  c_mod       = T
-  CVcm_res_list = list()
-  cur_title   = "Rounds outer and inner CV"
-  pb = winProgressBar(title = cur_title, min = 0,
-                      max = runs, width = 300)
-  list_winning_model = list()
-  for(hh in 1:runs) {
-    source('group_pred_6_wioCV.R')
-    CVcm_res_list[[hh]]        = CV_res
-    setWinProgressBar(pb,hh, title=paste(cur_title, round(hh/runs*100),
-                                         "% done"))
-  }
-  close(pb)
-  
-  # saving
-  cur_home = getwd()
-  dir.create(file.path(cur_home, paste0('results/',runs)),recursive=T)
-  setwd(file.path(cur_home, paste0('results/',runs)))
-  save(file = paste0(which_study,'_predGrp',pred_grp,'_rounds_wio_conmod_no_perm.RData'),
-       list = c('CVcm_res_list','fm','des_seed'))
-  setwd(cur_home)
+  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat=F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed,addfeat_only = F,c_mod = T)
 }
 
 # REPORTING: PREPARATION =====================================================

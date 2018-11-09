@@ -23,8 +23,8 @@
 
 # PREPARATION FOR FOREIGN RUN =================================================
 rm(list=ls())
-base_lib = 'C:/Users/genaucka/Google Drive/'
-#base_lib = 'E:/Google Drive/'
+#base_lib = 'C:/Users/genaucka/Google Drive/'
+base_lib = 'E:/Google Drive/'
 root_wd  = paste0(base_lib,'Library/01_Projects/PIT_GD/R/analyses/')
 setwd(root_wd)
 load('.RData')
@@ -81,16 +81,16 @@ outer_cv_noaddfeat_wiperm = 0 # with permutation [not recommended*]
 noout_cv_noaddfeat_noperm = 1 # no outer CV, get class on whole sample
 
 # behavior plus peripheral-physiological stuff
-outer_cv_wiaddfeat_noperm = 0 # adding physio
-outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
-noout_cv_wiaddfeat_noperm = 0 # adding physio
+outer_cv_wiaddfeat_noperm = 1 # adding physio
+outer_cv_addfeaton_wiperm = 1 # with permutation [not recommended*]
+noout_cv_wiaddfeat_noperm = 1 # adding physio
 
 # only peripheral-physiological / MRI / rating (all saved under "phys")
-outer_cv_addfeaton_noperm = 0 # Ha only, i.e. physio/MRI  
-outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
-noout_cv_addfeaton_noperm = 0 # to get the complete model 
+outer_cv_addfeaton_noperm = 1 # Ha only, i.e. physio/MRI  
+outer_cv_addfeaton_wiperm = 1 # with permutation [not recommended*]
+noout_cv_addfeaton_noperm = 1 # to get the complete model 
 
-outer_cv_c_model_noperm   = 1 # control model/null-model for classification;
+outer_cv_c_model_noperm   = 0 # control model/null-model for classification;
                               # not needed for MRI case (p-value comp in dfferent script)
 
 # what to report

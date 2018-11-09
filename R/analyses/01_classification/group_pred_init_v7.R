@@ -532,7 +532,7 @@ agk.group.pred.init = function() {
     dat_match[[pred_to_control]] = scale(dat_match[[pred_to_control]])
   }
   
-  # back up the unpermuted feature_clusters list
+  # back up the feature_clusters list
   feature_clusters_bcp = feature_clusters
   
   # return everything

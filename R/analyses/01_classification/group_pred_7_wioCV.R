@@ -2,58 +2,22 @@
 # v6.0; stripped down to glmnet
 # k-fold CV of the whole procedure
 # script which checks for CV score of the whole procedure
-# with or without permutation
 # needs before: import_data_pdt.R; select_study.R; group_pred_init.R;
 
 # PREPARATION =================================================================
 # get the study selected dat_match which contains demographic info
-# group label, smoking, severity information, unpermuted
-dat_match      = dat_match_bcp_study_selected
+# group label, smoking, severity information
+dat_match = dat_match_bcp_study_selected
 
 if (initial_scale) {
   dat_match[[pred_to_control]] = scale(dat_match[[pred_to_control]])
 }
 
-# getting the unpermuted exp model params
+# getting the exp model params
 featmod_coefs = featmod_coefs_bcp
 
-# getting the unpermuted additional features
+# getting the additional features
 feature_clusters = feature_clusters_bcp
-
-# permutation of group label?
-if (do_permut) {
-  # for dat_match, i.e. covariates
-  if (exists('myperms')) {
-    dat_match$HCPG     = dat_match$HCPG[myperms[[hh]]]
-    dat_match$VPPGperm = dat_match$VPPG[myperms[[hh]]]
-  } else {
-    dat_match$HCPG = dat_match$HCPG[permute(1:length(dat_match[,1]))]
-  }
-  
-  # for exp model parameters
-  for (mm in 1:length(featmod_coefs)) {
-    featmod_coefs[[mm]]$HCPG =  featmod_coefs[[mm]]$HCPG[myperms[[hh]]]
-  }
-  
-  # additional features
-  if (length(feature_clusters) > 1) {
-    for (mm in 2:length(feature_clusters)) {
-      feature_clusters[[mm]]$HCPG =  feature_clusters[[mm]]$HCPG[myperms[[hh]]]
-    }
-  }
-}
-
-if (do_con & do_con_constant) {
-  # keep subjects and control variable information aligned (stricter null-hypothesis)
-  if (do_permut) {
-    if (exists('myperms')) {
-      pred_to_control_num = names(dat_match) %in% pred_to_control
-      dat_match[,which(pred_to_control_num)] = dat_match[myperms[[hh]],which(pred_to_control_num)]
-    } else {
-      stop('no myperms variable!')
-    }
-  }
-}
 
 # getting the folds
 # cur_k for k-fold CV (k = n is LOOCV)
@@ -183,7 +147,7 @@ cur.mod.selection.fun = function(kk) {
       # getting the folds needed
       cur_fold_id = cur_fold_id_list[[kk]]
       
-      # NEW: get a new folding on every model selection rep round 4.3.2018: I need to let this run again
+      # get a new folding on every model selection rep round
       # the follwoing two lines were missing!
       cur_flds    = f_K_fold_b2g(featmod_coefs_cv[[kk]][[1]],'HCPG',cnfolds)
       cur_fold_id = agk.get.foldid(cur_flds)
@@ -202,20 +166,17 @@ cur.mod.selection.fun = function(kk) {
         
         cur_data = featmod_coefs_cv[[kk]][[ii]]
         
-        # unit test check that data is really permuted/unpermuted
+        # unit test check that data is in correct order
         cur_sub_grp_matching = subset(sub_grp_matching, row.names(sub_grp_matching) %in% row.names(cur_data))
         cur_data_pm          = cur_data[c('HCPG')]
         cur_data_pm          = cur_data_pm[order(row.names(cur_data_pm)),]
         cur_sub_grp_matching = cur_sub_grp_matching[order(row.names(cur_sub_grp_matching)),]
         stopifnot(all(row.names(cur_data_pm) == row.names(cur_sub_grp_matching)))
-        if (do_permut) {
-          stopifnot(!all(cur_data_pm == cur_sub_grp_matching))
-        } else {
-          stopifnot(all(cur_data_pm == cur_sub_grp_matching))
-        }
+        stopifnot(all(cur_data_pm == cur_sub_grp_matching))
         
-        # check if a single-predictor case (ac model)
+        # check if a single-predictor case (a model)
         if (length(cur_data) == 2) {
+          # adding some random noise variable
           cur_data$err = randn(length(cur_data[,1]),1)
         } else {
           # cur data can stay as it is
@@ -351,7 +312,7 @@ if (use_behav_params & c_mod == F) {
   featmod_coefs_sel_cv = featmod_coefs_sel_cv_list
 }
 
-# FEATURE SELECTION ===========================================================
+# FEATURE COLLECTION AND SCALING ==============================================
 # getting all the to-be innerCV's feature clusters ready
 total                   = length(flds)
 # get training data for each fold
@@ -399,117 +360,7 @@ for (kk in 1:total) {
   feature_clusters_cv_msd[[kk]] = tmp_msd
 }
 
-if (do_feat_sel & c_mod == F) {
-  # Perform the feature selection on additional features in each fold
-  disp('Running feature selection on additional features in training folds...')
-} else {
-  disp('Running feature selection on additional features is off.')
-}
-
-# function body
-cur.feat.sel.fun = function(kk) {
-  full_mods_fs      = list()
-  full_mods_fs_surv = list()
-  
-  # getting the folds needed
-  cur_fold_id = cur_fold_id_list[[kk]]
-  
-  for (ii in 1:length(feature_clusters_cv[[kk]])) {
-    if (ii <= 1) {next}
-    
-    # unit test that stratified folds for inner CV
-    if (unit_test_strat_innCV) {
-      for (zz in unique(cur_fold_id)[order(unique(cur_fold_id))]) {
-        check_half = table(feature_clusters_cv[[kk]][[ii]]$HCPG[cur_fold_id == zz])
-        if(check_half[1] != check_half[2]) {
-          stop('Unbalanced test set for inner CV!')
-        }
-      }
-    }
-    
-    # unit test check that data is really permuted/unpermuted
-    cur_data             = feature_clusters_cv[[kk]][[ii]]
-    cur_data$subject     = gsub(pattern = '\\.[1-9]','',cur_data$subject)
-    cur_data             = cur_data[!duplicated(cur_data$subject),]
-    cur_sub_grp_matching = subset(sub_grp_matching, sub_grp_matching$subject %in% cur_data$subject)
-    cur_data             = cur_data[c('subject','HCPG')]
-    cur_data             = cur_data[order(cur_data$subject),]
-    cur_sub_grp_matching = cur_sub_grp_matching[order(cur_sub_grp_matching$subject),]
-    stopifnot(all(cur_data$subject == cur_sub_grp_matching$subject))
-    if (do_permut) {
-      stopifnot(!all(cur_data == cur_sub_grp_matching))
-    } else {
-      stopifnot(all(cur_data == cur_sub_grp_matching))
-    }
-    
-    
-    if (do_feat_sel & c_mod == F) {
-      # feature selection using a mix of elastic net and recursive feature elimination
-      crit_ind = grep(as.character(feature_sel_forms[[ii]])[2],names(feature_clusters_cv[[kk]][[ii]]))
-      pred_ind = grep('pred_',names(feature_clusters_cv[[kk]][[ii]]))
-      cur_lab  = feature_clusters_cv[[kk]][[ii]][[crit_ind]]
-      
-      # data
-      cur_dat     = feature_clusters_cv[[kk]][[ii]][pred_ind]
-      
-      # feat selection
-      cur_feat_sel = feat_sel.c(cur_dat,cur_lab,cnfolds)
-      cur_surv     = agk.consensus(cur_feat_sel$surv_list,prop_crit = 0.9,min_var = 2)
-      cur_surv     = cur_surv$surv_feats
-      
-      full_mods_fs[[ii]]      = cur_surv
-      full_mods_fs_surv[[ii]] = cur_surv
-    }
-  }
-  
-  # extracting the survived features
-  if (do_feat_sel) {
-    # if feat sel was done
-    feature_clusters_sel = list()
-    for (ii in 1:length(feature_clusters)) {
-      # cur feature cluster
-      tmp = feature_clusters_cv[[kk]][[ii]]
-      if (ii > 1) {
-        # survived features in this cluster
-        if (isempty(full_mods_fs_surv)) {
-          cur_surv = c()
-        } else {
-          cur_surv = full_mods_fs_surv[[ii]]
-        }
-        non_pred = names(tmp)[grep('pred_',names(tmp),invert = T)]
-        tmp      = tmp[names(tmp) %in% c(non_pred,cur_surv)]
-        feature_clusters_sel[[ii]] = tmp
-      } else {
-        feature_clusters_sel[[ii]] = feature_clusters_cv[[kk]][[ii]]
-      }
-    }
-  } else {
-    # if feat sel was not done
-    feature_clusters_sel = feature_clusters_cv[[kk]]
-  }
-  # packing the result of this cv fold
-  cur_feature_clusters_sel_cv = feature_clusters_sel
-  # return
-  return(cur_feature_clusters_sel_cv)
-}
-
-# compile the function
-cur.feat.sel.fun.c = cmpfun(cur.feat.sel.fun)
-
-if (do_feat_sel & c_mod == F) {
-  # run it in parallel processes
-  total = length(flds)
-  cl    = parallel::makeCluster(detectCores()-1)
-  registerDoSNOW(cl)
-  feature_clusters_sel_cv = foreach(kk=1:total,
-                                    .packages=c('glmnetUtils','caret','randomForest','robustbase','matlib','glmnet','pracma'),
-                                    .verbose=T,.export = c('feature_clusters_cv')) %dopar% {
-                                      cur.feat.sel.fun.c(kk)
-                                    } 
-  stopCluster(cl)
-} else {
-  feature_clusters_sel_cv = feature_clusters_cv
-}
+feature_clusters_sel_cv = feature_clusters_cv
 
 # PREP FOR BUILDING THE COMPLETE MODEL ========================================
 if (c_mod == F) {
@@ -562,12 +413,8 @@ cur.compl.model.fun = function(kk) {
   
   if (do_con) {
     # add control variables
-    if (do_permut) {
-      cdm       = dat_match[c('VPPG','VPPGperm',pred_to_control)]
-    } else {
-      cdm       = dat_match[c('VPPG',pred_to_control)]
-    }
-    
+    cdm       = dat_match[c('VPPG',pred_to_control)]
+
     # new_names = paste0('pred_',names(cdm)[grep(x=names(cdm),pattern = 'VPPG',invert = T)])
     # # change to pred_ variable
     # names(cdm)[grep(x=names(cdm),pattern = 'VPPG',invert = T)] = new_names
@@ -578,24 +425,6 @@ cur.compl.model.fun = function(kk) {
     row.names(dat_sel_feat) = dat_sel_feat$subject
     tmp$subject             = NULL
     dat_sel_feat$subject    = NULL
-    
-    # unit test checking if pred_con and subject still aligned
-    if (do_con_constant & do_permut) {
-      stop('This part needs to be done over after renewing the formula to "HCPG ~ ."')
-      cur_test_data = dat_sel_feat[c('VPPG_perm',pred_to_control)]
-      dat_match_bcp_selected_subs = subset(dat_match_bcp, dat_match_bcp$VPPG %in% dat_match$VPPG)
-      if (initial_scale) {
-        dat_match_bcp_selected_subs[[pred_to_control]] = scale(dat_match_bcp_selected_subs[[pred_to_control]])
-      }
-      dat_match_bcp_selected_subs = subset(dat_match_bcp_selected_subs, VPPG %in% dat_sel_feat$subject)
-      #cur_test_data = merge(cur_test_data,dat_match_bcp_selected_subs[c('VPPG',pred_to_control)],by.x = 'subject','VPPG')
-      cur_test_data = merge(cur_test_data,dat_match_bcp_selected_subs[c('VPPG',pred_to_control)],by.x = 'VPPGperm','VPPG')
-      current_cov_columns = cur_test_data[,c(3:(3+length(pred_to_control)-1))]
-      orig_perm_columns   = cur_test_data[,c((3+length(pred_to_control)):(3+length(pred_to_control)+(length(pred_to_control)-1)))]
-      if (!all(current_cov_columns == orig_perm_columns)) {
-        stop('Pred to control not aligned under permutation!')
-      }
-    }
     
     # scaling
     if (scale_for_CV) {
@@ -623,7 +452,7 @@ cur.compl.model.fun = function(kk) {
     }
   }
   
-  # unit test check that data is really permuted/unpermuted
+  # unit test check that data is in correct order
   cur_data             = dat_sel_feat
   cur_data$subject     = gsub(pattern = '\\.[1-9]','',row.names(cur_data))
   cur_data             = cur_data[!duplicated(cur_data$subject),]
@@ -633,11 +462,7 @@ cur.compl.model.fun = function(kk) {
   cur_data             = cur_data[order(cur_data$subject),]
   cur_sub_grp_matching = cur_sub_grp_matching[order(row.names(cur_sub_grp_matching)),]
   stopifnot(all(cur_data$subject == cur_sub_grp_matching$subject))
-  if (do_permut) {
-    stopifnot(!all(cur_data == cur_sub_grp_matching))
-  } else {
-    stopifnot(all(cur_data == cur_sub_grp_matching))
-  }
+  stopifnot(all(cur_data == cur_sub_grp_matching))
   
   if (which_ML == 'ML') {
     # adjust prediction model using an ML (glmnet) technique

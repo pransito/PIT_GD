@@ -1,5 +1,5 @@
 # PREAMBLE ====================================================================
-# Version 6.0
+# Version 7.0
 # script to run group prediction with CV in a loop to see how stable results are
 # i.e. group prediction cross validated; in a loop because
 # we work with 10-fold or 5-fold cross-validation for tuning and this can be run
@@ -19,7 +19,7 @@
 
 # author: Alexander Genauck
 # email:  alexander.genauck@charite.de
-# date:   04.10.2018
+# date:   09.11.2018
 
 # PREPARATION FOR FOREIGN RUN =================================================
 rm(list=ls())
@@ -75,23 +75,20 @@ agk.load.ifnot.install('OptimalCutpoints')
 
 # WHAT TO RUN =================================================================
 # just the behavioral parameter sets
-# TEST ALL ON 1
-outer_cv_noaddfeat_noperm = 1 # with outer CV, getting generalization error
-outer_cv_noaddfeat_wiperm = 0 # with permutation [not recommended*]
-noout_cv_noaddfeat_noperm = 1 # no outer CV, get class on whole sample
+outer_cv_noaddfeat      = 1 # with outer CV, getting generalization error, Ha
+noout_cv_noaddfeat      = 0 # no outer CV, get complete model on whole sample
 
 # behavior plus peripheral-physiological stuff
-outer_cv_wiaddfeat_noperm = 1 # adding physio
-outer_cv_addfeaton_wiperm = 1 # with permutation [not recommended*]
-noout_cv_wiaddfeat_noperm = 1 # adding physio
+outer_cv_wiaddfeat      = 1 # adding physio, Ha
+noout_cv_wiaddfeat      = 0 # adding physio, get complete model
 
 # only peripheral-physiological / MRI / rating (all saved under "phys")
-outer_cv_addfeaton_noperm = 1 # Ha only, i.e. physio/MRI  
-outer_cv_addfeaton_wiperm = 1 # with permutation [not recommended*]
-noout_cv_addfeaton_noperm = 1 # to get the complete model 
+outer_cv_addfeaton      = 0 # Ha only, i.e. physio/MRI  
+noout_cv_addfeaton      = 0 # to get the complete model 
 
-outer_cv_c_model_noperm   = 0 # control model/null-model for classification;
-                              # not needed for MRI case (p-value comp in dfferent script)
+# control model
+outer_cv_c_model        = 0 # control model/null-model for classification; predict with covariate
+                            # not needed for MRI case (p-value comp in dfferent script, using random classification)
 
 # what to report
 do_report                 = 0
@@ -99,19 +96,8 @@ do_report_no_added_feat   = 0
 do_report_with_added_feat = 0
 do_report_feat_only       = 0
 
-message('Careful, the addfeat only option will overwrite results with current addfeat selection under "phys".')
-
-# for report use permut (F) or c_mod (T)?
-c_mod_report          = T
 # Any reporting of p-values against null? Set to F if you do that in a separate script.
-report_CV_p           = T
-
-# *permutation is turned off; it is very slow and technically needs to be done
-# for each round a large amount of times; gets infeasable; instead we are
-# using a control model (e.g. an empty model, i.e. random classification
-# or a model with just covariate as predictor)
-# that we can easily and quickly run with the same N and balanced labels as
-# our original data but for many thousand times to get a distribution under H0
+report_CV_p = T
 
 # PARAMETERS TO SET: General ==================================================
 # number of runs to get the CV results distribution, >=1000 recommended
@@ -147,7 +133,7 @@ est_models            = 1
 type_measure_binomial = "auc"
 # should unit tests for balanced CVfolds be used in wioCV script?
 # should always be 1
-unit_test_strat_outCV = 1
+unit_test_strat_outCV = T
 # should unit tests for balanced inner CVfolds be used in wioCV script?
 # should always be 1 (see below!)
 unit_test_strat_innCV = T
@@ -198,7 +184,7 @@ if (which_study == 'MRT') {
 
 # PARAMETERS TO SET: Behavior =================================================
 # add nonlinear behav models? currently not available; must be 0
-add_nonlinear_behav     = 0
+add_nonlinear_behav     = F
 # repeat the model selection over many kinds of foldings, take modus
 ms_reps                 = 10
 # ridge the behavioral models after having been fit? (use the ridged versions)
@@ -222,30 +208,21 @@ behav_within_sub_z      = F
 put_all_behav_vars_in   = F
 
 # PARAMETERS TO SET: Physio/MRI ===============================================
-# only for additional features (physio); 0 for none, 1 for
-# lasso regression, 2 caret's rfe with randomForest
-# 3 is simply checking if t-test is yielding sig. group result
-# 4: experimental feature selection; changes
-# legacy: no feature selection used; repeated elastic net does it all
-des_feat_sel         = 0
-# if do con should it be held constant (proper null-hypothesis)
-# only relevant for permutation scenario
-do_con_constant      = 0
 # master add cue reactivity/PIT predictors to full model: peripheral physiology/MRI
 # can be set to 0, if feature selection and adding should not be done on this
 # recommended is 1, so that all scenarios work; including phys/mri only
-add_cr_pp_ma         = 0
+add_cr_pp_ma         = T
 # master add cue reactivity predictors to full model: ratings
 # can be set to 0, if feature selection and adding should not be done on this
 # legacy: should never be done, cause ratings are post-experiment
-add_cr_ra_ma         = 0
+add_cr_ra_ma         = F
 # plot rating params
 # only for generating plots of ratings/p. physio
-plot_ratings         = 1
+plot_ratings         = T
 # ... plots for p. physio? not relevant in MRI study, nor in behav only; only for p.physio
-plot_physio          = 0
+plot_physio          = F
 # which aggregate fun to be used for rating/physio/MRI variables
-agg_fun          = mean.rmna
+agg_fun              = mean.rmna
 
 # PARAMETERS TO SET: General ==================================================
 # in glmnet final model which alphas to be tested?
@@ -271,13 +248,10 @@ if (type_measure_binomial == 'auc') {
 # k of the outer CV
 # if left empty then LOOCV will be used
 outer_k          = c(10)
-# do permutations? (for checking that CV procedure is not biased)
-# not for significance testing of the CV score: cause there is no certain CV estimate
-do_permut        = F
 
 # PROCESS PREPS ===============================================================
 # DO NOT make any changes here
-pred_grp = 1
+pred_grp = T
 if (strat_innerCV == F) {
   unit_test_strat_innCV = F
 }
@@ -292,8 +266,11 @@ if(which_ML == 'SVM' & fullm_reps > 3) {
   fullm_reps = 5
 }
 
-# do feature selection set it
-do_feat_sel = des_feat_sel
+# for report use c_mod_report = T
+# for p-value against covariate-only classification model
+c_mod_report = T
+
+# what features to add
 add_cr_pp   = add_cr_pp_ma
 add_cr_ra   = add_cr_ra_ma
 
@@ -313,9 +290,13 @@ if (cur_os == 'Windows') {
   curpbset = setTxtProgressBar
 }
 
+if (outer_cv_addfeaton | noout_cv_addfeaton) {
+  message('Careful, the addfeat only option will overwrite results with current addfeat selection under name "phys".')
+}
+
 # get the function that wraps the looping of CV rounds, and for initialization
-source('group_pred_loop_subf_v6.R')
-source('group_pred_init_v6.R')
+source('group_pred_loop_subf_v7.R')
+source('group_pred_init_v7.R')
 
 # run the init of (the CV of) group pred
 cur_res = agk.group.pred.init()
@@ -323,68 +304,41 @@ agk.assign.envtoenv(cur_res,globalenv())
 
 # get the original matching subjects group
 sub_grp_matching = featmod_coefs_bcp[[1]][c('HCPG')]
-if (add_cr_pp_ma == T | add_cr_pp_ma == T) {
+if (add_cr_pp_ma == T | add_cr_ra_ma == T) {
   stopifnot(all(row.names(featmod_coefs_bcp[[1]]) == row.names(feature_clusters_bcp[[2]])))
 }
 
-# prepare permutations
-set.seed(des_seed)
-myperms    = list()
-myperms_ok = FALSE
-while (myperms_ok == 0) {
-  for (ii in 1:runs) {
-    myperms[[ii]] = gtools::permute(1:length(dat_match[,1]))
-  }
-  myperms_ok = all(duplicated(myperms) == FALSE)
-}
-
-
-
-
-outer_cv_c_model_noperm   = 0 # control model/null-model for classification;
-# not needed for MRI case (p-value comp in dfferent script)
-
 
 # just the behavioral parameter sets ==========================================
-if (outer_cv_noaddfeat_noperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat = F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed)
+if (outer_cv_noaddfeat) {
+  agk.pred.group.CV(outer_CV = T,addfeat = F,add_cr_pp_fn = F,add_cr_ra_fn = F,des_seed)
 }
-if (outer_cv_noaddfeat_wiperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat = F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed)
-}
-if (noout_cv_noaddfeat_noperm) {
-  agk.pred.group.CV(outer_CV = F,do_permut = F,addfeat = F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed)
+if (noout_cv_noaddfeat) {
+  agk.pred.group.CV(outer_CV = F,addfeat = F,add_cr_pp_fn = F,add_cr_ra_fn = F,des_seed)
 }
 
 # behavioral parameter sets plus additional features ==========================
-if (outer_cv_wiaddfeat_noperm | outer_cv_addfeaton_wiperm | noout_cv_wiaddfeat_noperm) {stopifnot(add_cr_pp_ma | add_cr_pp_ma)}
-if (outer_cv_addfeaton_noperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed)
+if (outer_cv_wiaddfeat | noout_cv_wiaddfeat) {stopifnot(add_cr_pp_ma | add_cr_ra_ma)}
+if (outer_cv_wiaddfeat) {
+  agk.pred.group.CV(outer_CV = T,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed)
 }
-if (outer_cv_addfeaton_wiperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed)
-}
-if (noout_cv_addfeaton_noperm) {
-  agk.pred.group.CV(outer_CV = F,do_permut = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed)
+if (noout_cv_wiaddfeat) {
+  agk.pred.group.CV(outer_CV = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed)
 }
 
 # only additional features ===================================================
-if (outer_cv_addfeaton_noperm | outer_cv_addfeaton_wiperm | noout_cv_addfeaton_noperm) {stopifnot(add_cr_pp_ma | add_cr_pp_ma)}
-if (outer_cv_addfeaton_noperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = T)
+if (outer_cv_addfeaton | noout_cv_addfeaton) {stopifnot(add_cr_pp_ma | add_cr_ra_ma)}
+if (outer_cv_addfeaton) {
+  agk.pred.group.CV(outer_CV = T,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = T)
 }
-if (outer_cv_addfeaton_wiperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = T,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = T)
-}
-if (noout_cv_addfeaton_noperm) {
-  agk.pred.group.CV(outer_CV = F,do_permut = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = T)
+if (noout_cv_addfeaton) {
+  agk.pred.group.CV(outer_CV = F,addfeat = T,add_cr_pp_ma,add_cr_ra_ma,des_seed,addfeat_only = T)
 }
 
-# OUTERCV, CONTROL MODEL NOPERM ===============================================
-# alternative to permutation
+# OUTERCV, CONTROL MODEL =====================================================
 # the control model; intercept only, or only the control variables
-if (outer_cv_c_model_noperm) {
-  agk.pred.group.CV(outer_CV = T,do_permut = F,addfeat=F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed,addfeat_only = F,c_mod = T)
+if (outer_cv_c_model) {
+  agk.pred.group.CV(outer_CV = T,addfeat=F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed,addfeat_only = F,c_mod = T)
 }
 
 # REPORTING: PREPARATION =====================================================
@@ -420,7 +374,7 @@ if (do_report) {
   
   setwd(cur_home)
   if (c_mod_report & report_CV_p) {
-    # using control model instead of permutation
+    # using control model, renaming variables
     CVp_res_list    = CVcm_res_list
     CVp_res_list_op = CVcm_res_list
   }
@@ -439,11 +393,11 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     # p-value for the algorithm
     # get the accuracy null-distrib/alt hypothesis distribution
     cor    = c() # correlation
-    cor_p  = c() # correlation permuted
+    cor_p  = c() # correlation control
     coru   = c() # correlation unpooled (mean of k-fold)
-    coru_p = c() # correlation unpooled (mean of k-fold) permuted
+    coru_p = c() # correlation unpooled (mean of k-fold) control
     mse    = c() # mean squared error
-    mse_p  = c() # mean squared error permuted
+    mse_p  = c() # mean squared error control
     accs_p = c()
     accs   = c()
     sens_p = c()
@@ -462,7 +416,13 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     prec_p   = c()   # precision under 0
     bacc     = c()   # balanced accuracy
     bacc_p   = c()   # b.a. under 0
-    for (ii in 1:length(CVp_res_list)) {
+    if (length(CVp_res_list) >= 1000) {
+      bootstr_length = 1000
+    } else {
+      bootstr_length = length(CVp_res_list)
+    }
+
+    for (ii in 1:bootstr_length) {
       accs_p[ii]   = CVp_res_list[[ii]]$acc$accuracy
       accs[ii]     = CV_res_list[[ii]]$acc$accuracy
       sens_p[ii]   = CVp_res_list[[ii]]$acc$cur_sens
@@ -484,8 +444,8 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     }
     
     # make new ROC objects
-    for (ii in 1:length(rocl)) {
-      # non_permuted
+    for (ii in 1:bootstr_length) {
+      # Ha
       predictor  = rocl[[ii]]$original.predictor
       response   = rocl[[ii]]$original.response
       # get the precision
@@ -504,7 +464,7 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
       auc[ii]    = auc(rocl[[ii]])
       rocl[[ii]] = smooth( rocl[[ii]],n = 500)
       
-      # permuted (or control model)
+      # control model
       predictor    = roc_pl[[ii]]$original.predictor
       response     = roc_pl[[ii]]$original.response
       # get the precision
@@ -594,16 +554,16 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     print(cur_p)
     
     # ROC curve (get all the coordinates)
-    # not perm
+    # Ha
     specificities  = t(as.matrix(rocl[[1]]$specificities))
     sensitivities  = t(as.matrix(rocl[[1]]$sensitivities))
     
-    # perm
+    # control
     specificitiesl = t(as.matrix(roc_pl[[1]]$specificities))
     sensitivitiesl = t(as.matrix(roc_pl[[1]]$sensitivities))
     
     # get all the ROC curves
-    for (ii in 2:length(rocl)) {
+    for (ii in 2:bootstr_length) {
       if (length(rocl[[ii]]$specificities) != length(specificities[ii-1,])) {
         stop('length not same!')
       }
@@ -624,14 +584,7 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     sensitivities  = as.data.frame(sensitivities)
     specificitiesl = as.data.frame(specificitiesl)
     sensitivitiesl = as.data.frame(sensitivitiesl)
-    #spec_min_specl = specificities - specificitiesl
-    #sens_min_sensl = sensitivities - sensitivitiesl
-    
-    # spec_mci  = lapply(specificities,FUN = agk.boot.ci.c,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-    # sens_mci  = lapply(sensitivities,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-    # specl_mci = lapply(specificitiesl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-    # sensl_mci = lapply(sensitivitiesl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-    
+
     # not ci of mean but mean and percentiles over CV rounds
     agk.mean.quantile.c = cmpfun(agk.mean.quantile)
     spec_mci  = lapply(specificities,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
@@ -639,16 +592,10 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     specl_mci = lapply(specificitiesl,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
     sensl_mci = lapply(sensitivitiesl,FUN = agk.mean.quantile.c,lower = 0.025,upper=0.975)
     
-    # # subtract the permuted version
-    # spemspel_mci = lapply(spec_min_specl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-    # senmsenl_mci = lapply(sens_min_sensl,FUN = agk.boot.ci,R=1000,cur_fun = mean,lower = 0.025,upper=0.975)
-    
     spec_mci     = as.data.frame(matrix(unlist(spec_mci),ncol = 3,byrow = T))
     sens_mci     = as.data.frame(matrix(unlist(sens_mci),ncol = 3,byrow = T))
     specl_mci    = as.data.frame(matrix(unlist(specl_mci),ncol = 3,byrow = T))
     sensl_mci    = as.data.frame(matrix(unlist(sensl_mci),ncol = 3,byrow = T))
-    # spemspel_mci = as.data.frame(matrix(unlist(spemspel_mci),ncol = 3,byrow = T))
-    # senmsenl_mci = as.data.frame(matrix(unlist(spemspel_mci),ncol = 3,byrow = T))
     
     # plot
     # real
@@ -658,7 +605,7 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     lines(spec_mci$V2[order(spec_mci$V1)],sens_mci$V2[order(spec_mci$V1)],xlim = c(1,0),col='blue',lty=1)
     lines(spec_mci$V3[order(spec_mci$V1)],sens_mci$V3[order(spec_mci$V1)],xlim = c(1,0),col='blue',lty=1)
     
-    #perm
+    # control
     lines(specl_mci$V1[order(specl_mci$V1)],sensl_mci$V1[order(specl_mci$V1)],xlim = c(1,0),type='l',lty=2,lwd=4,col='red')
     lines(specl_mci$V2[order(spec_mci$V1)],sensl_mci$V2[order(spec_mci$V1)],xlim = c(1,0),col='red',lty=2)
     lines(specl_mci$V3[order(spec_mci$V1)],sensl_mci$V3[order(spec_mci$V1)],xlim = c(1,0),col='red',lty=2)
@@ -695,6 +642,7 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
   if (!do_report_feat_only) {
     # winning model frequencies
     disp('These models have been chosen:')
+    cur_mod_sel_nooCV = cur_mod_sel_nooCV[1:bootstr_length]
     cur_tab = table(cur_mod_sel_nooCV)
     print(cur_tab)
     
@@ -760,6 +708,8 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     win_mods_distr_l = list_winning_model_l_nooCV_op
   } else {
     # winning model beta values with CIs
+    list_winning_model_c_nooCV = list_winning_model_c_nooCV[1:bootstr_length]
+    list_winning_model_l_nooCV = list_winning_model_l_nooCV[1:bootstr_length]
     win_mods_distr_c = list_winning_model_c_nooCV[which(winning_mod == cur_mod_sel_nooCV)]
     win_mods_distr_l = list_winning_model_l_nooCV[which(winning_mod == cur_mod_sel_nooCV)]
   }

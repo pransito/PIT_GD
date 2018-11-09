@@ -1,8 +1,20 @@
 ## PREAMBLE ===================================================================
-# script that selects from data_pdt
+# script that selects from data_pdt and dat_match the data of desired study
 # the study (cohort) you need
-# run data_import.R before
-# will output data_pdt to be used for further analysis
+# run data_import.R before or load the .RData file (foreign run)
+# will output data_pdt, dat_match to be used for further analysis
+
+# set to T, if you have this script from GitHub
+FOREIGN_RUN = T
+
+if (FOREIGN_RUN) {
+  # PREPARATION FOR FOREIGN RUN =================================================
+  # root_wd needs to be the folder which holds the "PIT_GD_behav/R/analyses/"
+  rm(list=ls())
+  root_wd  = paste0(dirname(rstudioapi::getSourceEditorContext()$path),'/analyses/')
+  setwd(root_wd)
+  load('.RData')
+}
 
 # get the original data_pdt from data_import.R
 data_pdt     = data_pdt_bcp
@@ -11,20 +23,20 @@ data_pdt_inv = data_pdt
 ## PARAMETER SETTINGS =========================================================
 
 #which study to look at (Cohorts)?
-#which_study = "MRT"
-#which_study = "MRT_and_POSTPILOT" # lumping those together (for KFG prediction e.g.)
+#which_study = "MRI"
+#which_study = "MRI_and_POSTPILOT" # lumping those together (for KFG prediction e.g.)
 which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
 #which_study = "TEST" # when K.Brehm used POSTPILOT and simulated facial expression (8888) or not (7777)
 #which_study = "Prestudy" # HC groups before core behav study; for image adequacy (PhysioPilot)
 #which_study = "sanity"
 #which_study = "POSTPILOT_HC" # this for testing image adequacy within HC of core behav study
 #which_study = "POSTPILOT_PG" # this for testing image adequacy within PG of core behav study
-#which_study = "MRT_HC" # this for testing image adequacy within HC of core behav study
+#which_study = "MRI_HC" # this for testing image adequacy within HC of core behav study
 #which_study = "POSTPILOT_PGxGENDER" # this for testing the effect of gender in pg group
-#which_study = "MRT_LB" # subsample MA
+#which_study = "MRI_LB" # subsample MA
 
 # default data_inv
-if (which_study == 'MRT') {
+if (which_study == 'MRI') {
   do_data_inv = 0 
 } else {
   do_data_inv = 0
@@ -58,7 +70,7 @@ if (physio_sum_fun == 'mean') {
 
 # ## rt cut off (are we still using this? should not be in here!)
 # # must go, if so, to data cleaning
-# if(which_study == "MRT" | which_study == "MRT_HC"| which_study == "MRT_LB") {
+# if(which_study == "MRI" | which_study == "MRI_HC"| which_study == "MRI_LB") {
 #   rt_cut_off = 0.15
 # } else {
 #   rt_cut_off = 1.0
@@ -82,20 +94,20 @@ if (which_study == "Prestudy") {
 } else if (which_study == "POSTPILOT_HCPG" | which_study == "POSTPILOT_HC" | 
            which_study == "POSTPILOT_PG" | which_study == "POSTPILOT_PGxGENDER") {
   data_pdt = subset(data_pdt, Cohort == "POSTPILOT" | Cohort == "PGPilot")
-} else if (which_study == "MRT" | which_study == "MRT_HC" | which_study == "MRT_PG"| which_study == "MRT_LB") {
-  data_pdt = subset(data_pdt,Cohort == "MRT")
+} else if (which_study == "MRI" | which_study == "MRI_HC" | which_study == "MRI_PG"| which_study == "MRI_LB") {
+  data_pdt = subset(data_pdt,Cohort == "MRI")
 } else if (which_study == "PhysioPilot") {
   data_pdt = subset(data_pdt,Cohort == "PhysioPilot")
-} else if (which_study == "MRT_LB") {
+} else if (which_study == "MRI_LB") {
   includelist=read.table("E:/MATLAB/info_mri_selection.csv")
-  dat_match_MRT_only=subset(dat_match, dat_match$Cohort=="MRT")
-  dat_match_MRT_only=subset(dat_match_MRT_only, dat_match_MRT_only$Einschluss==1)
-  data_pdt= subset(data_pdt,data_pdt$subject %in% dat_match_MRT_only$VPPG)
-  data_pdt= subset(data_pdt,data_MRT_only$subject %in% includelist$V1)
+  dat_match_MRI_only=subset(dat_match, dat_match$Cohort=="MRI")
+  dat_match_MRI_only=subset(dat_match_MRI_only, dat_match_MRI_only$Einschluss==1)
+  data_pdt= subset(data_pdt,data_pdt$subject %in% dat_match_MRI_only$VPPG)
+  data_pdt= subset(data_pdt,data_MRI_only$subject %in% includelist$V1)
 } else if (which_study == "sanity") {
   data_pdt = subset(data_pdt,Cohort == "sanity")
-} else if (which_study == "MRT_and_POSTPILOT") {
-  data_pdt = subset(data_pdt,Cohort == "POSTPILOT" | Cohort == "PGPilot" | Cohort == "MRT")
+} else if (which_study == "MRI_and_POSTPILOT") {
+  data_pdt = subset(data_pdt,Cohort == "POSTPILOT" | Cohort == "PGPilot" | Cohort == "MRI")
 } else if (which_study == "TEST") {
   data_pdt = subset(data_pdt, Cohort == "TEST")
 } else {
@@ -153,21 +165,6 @@ if (do_data_inv == 1) {
 
 ## END DATA_INV
 
-## AGE AND GENDER within the sample ##
-# length(unique(data_pdt_finCat$subject))
-# length(unique(data_pdt_finCat$subject[!is.na(data_pdt_finCat$imageRating1)]))
-# age=c()
-# gender=c()
-# for (i in 1:length(unique(data_pdt_finCat$subject))){
-#   subs=unique(data_pdt_finCat$subject)
-#   sub=subs[i]
-#   age[i]=data_pdt_finCat[data_pdt_finCat$subject== sub,]$age[1]
-#   gender[i]=data_pdt_finCat[data_pdt_finCat$subject== sub,]$sex[1]
-# }
-# mean(age)
-# sd(age)
-# table(gender)
-
 # CATEGORY LABELS =============================================================
 if (do_data_inv == 0) {
   # Main effect of the final experimental categories: gam, pos, neg, neu_aw
@@ -180,9 +177,9 @@ if (do_data_inv == 0) {
     data_pdt_finCat$cat = factor(as.numeric(as.character(data_pdt_finCat$cat)),levels = c(6,2,3,7,8),
                                  labels = c('neutral_IAPS','negative_VPPG', 'positive_VPPG','negative_IAPS','positive_IAPS'))
   } else if (which_study == "POSTPILOT_PG" | which_study == "POSTPILOT_PGxGENDER" | 
-             which_study == "POSTPILOT_HC" | which_study == "MRT_HC" | 
-             which_study == "MRT_PG" | which_study == "POSTPILOT_HCPG" | 
-             which_study == "MRT" | which_study == "MRT_and_POSTPILOT" |
+             which_study == "POSTPILOT_HC" | which_study == "MRI_HC" | 
+             which_study == "MRI_PG" | which_study == "POSTPILOT_HCPG" | 
+             which_study == "MRI" | which_study == "MRI_and_POSTPILOT" |
              which_study == "TEST") {
     data_pdt_finCat$cat = factor(as.numeric(as.character(data_pdt_finCat$cat)),levels = c(6,1,2,3),
                                  labels = c('neutral','gambling','negative', 'positive'))
@@ -258,70 +255,58 @@ for (ss in 2:length(enh_dpdt)) {
 # load the MRI extracts
 # excluding subjects because of missing in pp
 # prepping data frames for pp
-if (which_study == 'MRT') {
-  setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
-  source("get_phys_and_rating_params_MRI.R")
-  setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
+if (which_study == 'MRI') {
+  cr_agg_pp        = cr_agg_pp_r_MRI
 }
-
-# reduce the fMRI data
-if (which_study == 'MRT') {
-  if (fmri_extr == 'ngm' | fmri_extr == 'glc') {
-    cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxAccx',names(cr_agg_pp)),grep('PicGamOnxaccX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
-  } else if (fmri_extr == 'val') {
-    cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxvalx',names(cr_agg_pp)),grep('PicGamOnxvalX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
-  }
-  
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*DRN_8',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*AIns',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*PIns',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('_BA_',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('_ACgG',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_.OrG',names(cr_agg_pp_r),invert = T)] # OFC none-gppi extracts
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_MFC',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_MSFG',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_MFC',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_MSFG',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_full_midbrain',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._.OrG',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._Caudate',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Amy.*_._Amy',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._Acc',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('.*Caudate$',names(cr_agg_pp_r),invert = T)]
-  cr_agg_pp_r = cr_agg_pp_r[grep('.*Putamen$',names(cr_agg_pp_r),invert = T)]
-  
-  # take out PPI StrAs
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs',names(cr_agg_pp_r),invert = T)]
-  
-  # take out StrAs in general
-  cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*_StrAs',names(cr_agg_pp_r),invert = T)]
-  
-  # allow PPI StrAs but only caudate and putamen split and do not allow self-connectivities
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs_',names(cr_agg_pp_r),invert = T)]
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._StrAsPut',names(cr_agg_pp_r),invert = T)]
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._StrAsCaud',names(cr_agg_pp_r),invert = T)]
-  # allow only StrAs to OFC
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._StrAsPut',names(cr_agg_pp_r),invert = T)]
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._Acc',names(cr_agg_pp_r),invert = T)]
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._Amy',names(cr_agg_pp_r),invert = T)]
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._StrAsCaud',names(cr_agg_pp_r),invert = T)]
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._Acc',names(cr_agg_pp_r),invert = T)]
-  #cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._Amy',names(cr_agg_pp_r),invert = T)]
-  
-  cr_agg_pp        = cr_agg_pp_r
-  cr_agg_pp_readin = cr_agg_pp
-}
-
-## prep valence and arousal measure peripheral phys
-data_pdt$scr_arousal  = data_pdt$SCR
-data_pdt$cozy_valence = data_pdt$zygo_auc_stim - data_pdt$corr_auc_stim 
-
 
 ## SAVE TO WORKSPACE ==========================================================
 # saving this result
 data_pdt_bcp_study_selected  = data_pdt
 dat_match_bcp_study_selected = dat_match
 
-## SAVE THE WORKSPACE FOR CLASSIFICATION AND OTHER ANALYSES ===================
-setwd(path_ana)
-save.image()
+## initialize for all analyses ================================================
+## initialization settings [DEFAULT, DO NOT CHANGE] ===========================
+# just the behavioral parameter sets
+outer_cv_noaddfeat      = 0 # with outer CV, getting generalization error, Ha
+noout_cv_noaddfeat      = 0 # no outer CV, get complete model on whole sample
+
+# behavior plus peripheral-physiological stuff
+outer_cv_wiaddfeat      = 0 # adding physio, Ha
+noout_cv_wiaddfeat      = 0 # adding physio, get complete model
+
+# only peripheral-physiological / MRI / rating (all saved under "phys")
+outer_cv_addfeaton      = 0 # Ha only, i.e. physio/MRI  
+noout_cv_addfeaton      = 0 # to get the complete model 
+
+# control model
+outer_cv_c_model        = 0 # control model/null-model for classification; predict with covariate
+# not needed for MRI case (p-value comp in dfferent script, using random classification)
+
+# what to report
+do_report                 = 0
+do_report_no_added_feat   = 0
+do_report_with_added_feat = 0
+do_report_feat_only       = 0
+
+if (which_study == 'MRI') {
+  # Any reporting of p-values against null? Set to F if you do that in a separate script.
+  report_CV_p = T
+} else {
+  # Any reporting of p-values against null? Set to F if you do that in a separate script.
+  report_CV_p = F
+}
+
+# no other features, only behavior
+# master add cue reactivity: peripheral physiology or MRI
+add_cr_pp_ma         = F
+# master add cue reactivity: ratings
+# should never be done, cause ratings are post-experiment
+add_cr_ra_ma         = F
+
+# run the initializations
+cd('..')
+setwd('analyses/01_classification/')
+init_run = T
+source('group_pred_loop_v7.R')
+init_run  = F
+init_done = T

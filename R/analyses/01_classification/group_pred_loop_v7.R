@@ -11,25 +11,14 @@
 # estimated by the given data; nooCV: no outer cross validation; complete
 # data is used
 
-# WHAT TO RUN helps to select what the script should do; already set so it 
-# is like it is in paper
-
-# tip: set runs to a smaller number than 1010 if you do not want to wait hours
-# for a result (try 10 for starters)
+# use classifier_setting.R to set what you want to run
 
 # author: Alexander Genauck
 # email:  alexander.genauck@charite.de
 # date:   09.11.2018
 
 # PREPARATION FOR FOREIGN RUN =================================================
-rm(list=ls())
-#base_lib = 'C:/Users/genaucka/Google Drive/'
-base_lib = 'E:/Google Drive/'
-root_wd  = paste0(base_lib,'Library/01_Projects/PIT_GD/R/analyses/')
-setwd(root_wd)
-load('.RData')
-setwd('01_classification')
-root_wd = getwd()
+setwd(paste0(root_wd,'/01_classification'))
 
 # LIBRARIES ===================================================================
 agk.load.ifnot.install("psych")
@@ -73,53 +62,17 @@ agk.load.ifnot.install('WhatIf')
 agk.load.ifnot.install('Matching')
 agk.load.ifnot.install('OptimalCutpoints')
 
-# WHAT TO RUN =================================================================
-# just the behavioral parameter sets
-outer_cv_noaddfeat      = 1 # with outer CV, getting generalization error, Ha
-noout_cv_noaddfeat      = 0 # no outer CV, get complete model on whole sample
-
-# behavior plus peripheral-physiological stuff
-outer_cv_wiaddfeat      = 1 # adding physio, Ha
-noout_cv_wiaddfeat      = 0 # adding physio, get complete model
-
-# only peripheral-physiological / MRI / rating (all saved under "phys")
-outer_cv_addfeaton      = 0 # Ha only, i.e. physio/MRI  
-noout_cv_addfeaton      = 0 # to get the complete model 
-
-# control model
-outer_cv_c_model        = 0 # control model/null-model for classification; predict with covariate
-                            # not needed for MRI case (p-value comp in dfferent script, using random classification)
-
-# what to report
-do_report                 = 0
-do_report_no_added_feat   = 0
-do_report_with_added_feat = 0
-do_report_feat_only       = 0
-
-# Any reporting of p-values against null? Set to F if you do that in a separate script.
-report_CV_p = T
+# what to run =================================================================
+if (!init_run) {
+  if (init_done == F) {
+    stop('First run the "select_study.R script to initialize all analyses')
+  }
+  setwd(root_wd)
+  setwd('01_classification/')
+  source('classifier_settings.R')
+}
 
 # PARAMETERS TO SET: General ==================================================
-# number of runs to get the CV results distribution, >=1000 recommended
-# runs also will be the name of the results folder; what is stored in the results
-# folder is described here:
-# 300 : p. physio pred (PIT GD behav paper)
-# 1010: behav predictions (PIT GD behav paper) 
-# 1011: behav predictions (PIT GD behav paper) (NO within-z; class; cleaning AIC)
-# 1012: behav predictions (PIT GD behav paper) (NO within-z; class; control)
-
-# 1023: fMRI predictors with AIC cleaning
-# 1024: fMRI predictor with BIC cleaning
-# 1025: fMRI predictor with no cleaning
-# 15: kitchen sink model; all behav in
-# 18: rating only as a "cue reactivity model only"
-# 20: behav; within-z; class; cleaning AIC
-# 21: behav; NO within-z; class; cleaning AIC
-# 22: behav; NO within-z; mse; cleaning AIC
-# 23: behav; NO within-z; auc; cleaning AIC
-# 24: behav; NO within-z; auc; no cleaning; control model instead with smoking
-runs                  = 1
-
 # set some seed to ensure reproducability
 des_seed              = 6993
 # run the models (for param extraction in exp)
@@ -208,14 +161,6 @@ behav_within_sub_z      = F
 put_all_behav_vars_in   = F
 
 # PARAMETERS TO SET: Physio/MRI ===============================================
-# master add cue reactivity/PIT predictors to full model: peripheral physiology/MRI
-# can be set to 0, if feature selection and adding should not be done on this
-# recommended is 1, so that all scenarios work; including phys/mri only
-add_cr_pp_ma         = T
-# master add cue reactivity predictors to full model: ratings
-# can be set to 0, if feature selection and adding should not be done on this
-# legacy: should never be done, cause ratings are post-experiment
-add_cr_ra_ma         = F
 # plot rating params
 # only for generating plots of ratings/p. physio
 plot_ratings         = T
@@ -345,7 +290,7 @@ if (outer_cv_c_model) {
 if (do_report) {
   cur_home = getwd()
   setwd(root_wd)
-  setwd('results')
+  setwd('01_classification/results/')
   setwd(as.character(runs))
   if (pred_grp) {
     all_res_files = dir(pattern = paste0(which_study,'_predGrp1'))

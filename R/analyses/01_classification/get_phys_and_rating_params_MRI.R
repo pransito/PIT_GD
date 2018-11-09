@@ -35,18 +35,3 @@ cr_agg_pp     = cr_agg_pp[vars_keep]
 
 message("Dropped these variables due to missing fMRI extraction data in some or all subs")
 print(as.character(all_vars[!all_vars %in% names(cr_agg_pp)]))
-
-# # exclude subjects who do not have everything (rating/physio) =================
-# all_subs      = unique(data_pdt$subject)
-# variable_drop = na.omit(t(cr_agg_pp))
-# row.names(variable_drop)
-# 
-# cur_drp_pp = c()
-# if (add_cr_pp) {
-#   cur_drp_pp  = all_subs[which(!all_subs %in% cr_agg_pp$subject)]
-# }
-# 
-# data_pdt  = data_pdt[!data_pdt$subject %in% cur_drp_pp,]
-# dat_match = dat_match[!dat_match$VPPG %in% cur_drp_pp,]
-# message("Dropped these subs due to missing fMRI extraction data:")
-# print(as.character(cur_drp_pp))

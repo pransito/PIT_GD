@@ -13,7 +13,7 @@ agk.group.pred.init = function() {
   
   # author: Alexander Genauck
   # email:  alexander.genauck@charite.de
-  # date:   17.07.2018
+  # date:   09.11.2018
   
   ## PROCESS PREPS ==============================================================
   # estimate models backup
@@ -24,21 +24,21 @@ agk.group.pred.init = function() {
   dat_match = dat_match_bcp_study_selected
   
   # prep if peripheral physiology or ratings should be added
-  if (add_cr_pp  == 1 || add_cr_ra  == 1) {
+  if ((add_cr_pp  == 1 || add_cr_ra  == 1) & which_study != 'MRI') {
     # excluding subjects because of missing in pp or ra
     # prepping data frames for ra and pp
     cur_path = getwd()
     setwd(root_wd)
-    source("get_phys_and_rating_params_and_plots_v2.R")
-    setwd(root_wd)
-  } else if (add_cr_pp  == 1 & which_study == 'MRT') {
+    source("01_classification/get_phys_and_rating_params_and_plots_v2.R")
+  } else if (add_cr_pp  == 1 & which_study == 'MRI') {
     # data is already gathered and in workspace
   } else {
     # do nothing
   }
   
-  if (which_study == 'MRT' & add_cr_pp_ma) {
-    cr_agg_pp = cr_agg_pp_readin
+  if (which_study == 'MRI' & add_cr_pp_ma) {
+    #cr_agg_pp = cr_agg_pp_readin
+    cr_agg_pp = cr_agg_pp_r_MRI
     # clean out subject variable
     row.names(cr_agg_pp) = cr_agg_pp$subject
     cr_agg_pp$subject    = NULL
@@ -98,7 +98,7 @@ agk.group.pred.init = function() {
   }
   
   # cleaning cr_agg_pp
-  if (add_cr_pp_ma & which_study == 'MRT') {
+  if (add_cr_pp_ma & which_study == 'MRI') {
     if (regress_out_covs) {
       if (!exists('cr_agg_pp_cleaned')) {
         vars_to_cov       = pred_to_clean

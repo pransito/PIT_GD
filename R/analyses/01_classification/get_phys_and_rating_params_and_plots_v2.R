@@ -49,8 +49,6 @@ for (ii in 1:length(des_vars)) {
   }
 }
 
-
-
 if (plot_ratings) {
   cfint = cfint_list[[1]]
   for(ii in 2:length(cfint_list)) {
@@ -127,7 +125,7 @@ cr_agg_ra         = crdf
 cr_agg_ra$subject = row.names(cr_agg_ra)
 
 ## Plots means and CIs of physio variables (stim)==============================
-if (which_study != 'MRT') {
+if (which_study != 'MRI') {
   # means and CIs
   des_vars = c('zygo_auc','corr_auc','SCR')
   
@@ -166,38 +164,36 @@ if (which_study != 'MRT') {
     mRat  = mRat + facet_grid(channel ~ .)
     mRatg = mRat + theme_bw()
     print(mRatg)
-  }
-  
-  # interaction cue reactivity*group
-  cfint_list = list()
-  lmlcf      = list()
-  for (ii in 1:length(des_vars)) {
-    cur_form        = as.formula(paste(des_vars[ii],'~ cat | subject'))
-    cur_lml         = lmList(cur_form,data = data_pdt)
-    cur_lml         = coef(cur_lml)
-    lmlcf[[ii]]     = cur_lml
-    cur_lml         = cur_lml[-which(names(cur_lml) == '(Intercept)')]
-    cur_lml$HCPG    = agk.recode.c(row.names(cur_lml),dat_match$VPPG,dat_match$HCPG)
-    cur_lml         = melt(cur_lml)
     
-    cur_form = as.formula('value ~ variable + HCPG')
-    cfint = aggregate(cur_form,data = cur_lml,FUN=agk.boot.ci,
-                      cur_fun = mean,lower=0.025, upper=0.975,R=5000)
+    # interaction cue reactivity*group
+    cfint_list = list()
+    lmlcf      = list()
+    for (ii in 1:length(des_vars)) {
+      cur_form        = as.formula(paste(des_vars[ii],'~ cat | subject'))
+      cur_lml         = lmList(cur_form,data = data_pdt)
+      cur_lml         = coef(cur_lml)
+      lmlcf[[ii]]     = cur_lml
+      cur_lml         = cur_lml[-which(names(cur_lml) == '(Intercept)')]
+      cur_lml$HCPG    = agk.recode.c(row.names(cur_lml),dat_match$VPPG,dat_match$HCPG)
+      cur_lml         = melt(cur_lml)
+      
+      cur_form = as.formula('value ~ variable + HCPG')
+      cfint = aggregate(cur_form,data = cur_lml,FUN=agk.boot.ci,
+                        cur_fun = mean,lower=0.025, upper=0.975,R=5000)
+      
+      cfint = as.data.frame(cbind(cfint[c('variable','HCPG')],cfint[[3]]))
+      names(cfint)[c(3:5)] = c('mean','lower','upper')
+      cfint$channel = des_vars[ii]
+      cfint_list[[ii]] = cfint
+    }
+    cfint = cfint_list[[1]]
+    for(ii in 2:length(cfint_list)) {
+      cfint = rbind(cfint,cfint_list[[ii]])
+    }
     
-    cfint = as.data.frame(cbind(cfint[c('variable','HCPG')],cfint[[3]]))
-    names(cfint)[c(3:5)] = c('mean','lower','upper')
-    cfint$channel = des_vars[ii]
-    cfint_list[[ii]] = cfint
-  }
-  cfint = cfint_list[[1]]
-  for(ii in 2:length(cfint_list)) {
-    cfint = rbind(cfint,cfint_list[[ii]])
-  }
-  
-  # plotting (faceting by category)
-  names(cfint)[names(cfint) == 'HCPG'] = 'Group'
-  cfint$Group                          = agk.recode.c(cfint$Group,'PG','GD')
-  if (plot_physio) {
+    # plotting (faceting by category)
+    names(cfint)[names(cfint) == 'HCPG'] = 'Group'
+    cfint$Group                          = agk.recode.c(cfint$Group,'PG','GD')
     mRat  = ggplot(cfint, aes(variable, mean,fill=Group))
     mRat  = mRat + labs(x='Group', y=paste('Mean (',0.95*100,'% CI, bootstrapped)'))
     mRat  = mRat + ggtitle("Physio reactions to different categories of cues")
@@ -235,7 +231,7 @@ if (which_study != 'MRT') {
   }
   
   ## Plots means and CIs of physio variables (GAMBLE Phase) =====================
-  if (which_study == 'POSTPILOT_HCPG') {
+  if (which_study == 'POSTPILOT_HCPG' & plot_physio) {
     cr_pp   = c("corr","zygo","SCR")
     if (physio_sum_fun == 'all') {
       # use all the available summary stats
@@ -312,24 +308,22 @@ if (which_study != 'MRT') {
     cfint$channel = gsub('_auc','',cfint$channel)
     cfint$channel = gsub('_gambleStim','',cfint$channel)
     
-    if (plot_physio) {
-      # plotting (faceting by category)
-      mRat  = ggplot(cfint, aes(HCPG, mean,fill=variable))
-      mRat  = mRat + labs(x='Group', y=paste('Mean (',0.95*100,'% CI, bootstrapped)'))
-      mRat  = mRat + ggtitle("Physio reaction shifts in gamble phase: interactions (PIT effects)")
-      mRat  = mRat + geom_bar(position="dodge", stat="identity")
-      dodge = position_dodge(width=0.9)
-      mRat  = mRat + geom_bar(position=dodge, stat="identity")
-      mRat  = mRat + geom_errorbar(aes(ymin = lower, ymax = upper), position=dodge, width=0.25) 
-      mRat  = mRat + facet_grid(channel ~ .)
-      mRatg = mRat + theme_bw() #+ theme(legend.position="bottom")
-      print(mRatg)
-    }
+    # plotting (faceting by category)
+    mRat  = ggplot(cfint, aes(HCPG, mean,fill=variable))
+    mRat  = mRat + labs(x='Group', y=paste('Mean (',0.95*100,'% CI, bootstrapped)'))
+    mRat  = mRat + ggtitle("Physio reaction shifts in gamble phase: interactions (PIT effects)")
+    mRat  = mRat + geom_bar(position="dodge", stat="identity")
+    dodge = position_dodge(width=0.9)
+    mRat  = mRat + geom_bar(position=dodge, stat="identity")
+    mRat  = mRat + geom_errorbar(aes(ymin = lower, ymax = upper), position=dodge, width=0.25) 
+    mRat  = mRat + facet_grid(channel ~ .)
+    mRatg = mRat + theme_bw() #+ theme(legend.position="bottom")
+    print(mRatg)
   }
 }
 
 ## make a data.frame of these data ============================================
-if (which_study != 'MRT') {
+if (which_study != 'MRI' & plot_physio) {
   all_des_vars = c(des_vars,all_vars_of_int)
   crdf        = agk.clean.intercept.name(lmlcf[[1]])
   names(crdf) = paste0(names(crdf),'_',all_des_vars[1])
@@ -345,12 +339,14 @@ if (which_study != 'MRT') {
 
 ## exclude subjects who do not have everything (rating/physio) ================
 all_subs  = cr_agg_pp$subject
-cr_agg_pp = na.omit(cr_agg_pp)
+if (plot_physio) {
+  cr_agg_pp = na.omit(cr_agg_pp)
+}
 cr_agg_ra = na.omit(cr_agg_ra)
 
 cur_drp_pp = c()
 cur_drp_ra = c()
-if (add_cr_pp) {
+if (add_cr_pp & plot_physio) {
   cur_drp_pp  = all_subs[which(!all_subs %in% cr_agg_pp$subject)]
 }
 if (add_cr_ra) {
@@ -360,7 +356,7 @@ data_pdt  = data_pdt[!data_pdt$subject %in% cur_drp_pp,]
 data_pdt  = data_pdt[!data_pdt$subject %in% cur_drp_ra,]
 dat_match = dat_match[!dat_match$VPPG %in% cur_drp_pp,]
 dat_match = dat_match[!dat_match$VPPG %in% cur_drp_ra,]
-if (which_study != 'MRT') {
+if (which_study != 'MRI') {
   message("Dropped these subs due to missing physio in data_pdt and dat_match:")
   print(as.character(cur_drp_pp))
 } else {

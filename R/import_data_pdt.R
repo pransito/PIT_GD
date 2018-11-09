@@ -4,7 +4,7 @@
 # Alexander Genauck
 
 # IMPORT OF PDT non-fMRI DATA
-# PRETEST,PILOT-HC,SANITY,PILOT-PG,MRT-PG,MRT-HC
+# PRETEST,PILOT-HC,SANITY,PILOT-PG,MRI-PG,MRI-HC
 
 ## clear workspace
 rm(list = ls())
@@ -76,7 +76,7 @@ m_crit                   = 0.12
 KFG_cutoff               = 16
 # for matching: which studies to do it on, and what are the group sizes?
 # set desired_n to too high value if you do not want to do the matching for a particular study
-which_studies            = c("MRT","POSTPILOT")
+which_studies            = c("MRI","POSTPILOT")
 # how many subjects per group desired?
 desired_n                = list(c(32,32),c(30,30))
 # for matching (dom: do matching variables, do matching variables narrowed for elimination of couples)
@@ -99,7 +99,7 @@ behav_exempt = paste0('Pretest',sprintf("%02d",seq(1,16)))
 if (physio_excl) {
   behav_exempt = c(behav_exempt,phys_exempt)
 }
-# TODO: adding some more to behav_exempt; VPPG0289a is MRT and his data from S: needs to be arranged!
+# TODO: adding some more to behav_exempt; VPPG0289a is MRI and his data from S: needs to be arranged!
 # TODO: VPPG0896 is a new MRI sub; needs to be arranged, behav data exported; etc.
 # NOTE: subs without behav data will be disregarded in all further analyses/reports/matching
 behav_exempt = c(behav_exempt,'baseNAPS0008', 'baseNAPS0013', 'baseNAPS0014',
@@ -146,7 +146,7 @@ path_que          = paste0(base,"Bilderrating/Results_Pretest/Result files/quest
 path_que_pp       = paste0(base,"Bilderrating/Results_Pretest/Result files/import old physio pretest questions")
 #path_scr          = paste0(base,'Screening/Screening_Export')
 path_scr          = path_que
-path_mrt          = paste0(base_dat,'/MRT/')
+path_mrt          = paste0(base_dat,'/MRI/')
 path_led          = paste0(base,"Experimente/PDT/ledaLab_anal/")
 path_lib          = paste0(base_lib,"Library/R")
 path_plb          = paste0(base_lib,"Library/01_Projects/PIT_GD/R/analyses")
@@ -641,7 +641,7 @@ if (import_existing_imp == 0) {
     dfs                   = matching_res$dfs
     dropped_subs_matching = matching_res$dropped_HCs_PGs
     
-    # elimate further, in the MRI study at least, to improve matching [MRT: study 1]
+    # elimate further, in the MRI study at least, to improve matching [MRI: study 1]
     message('I am cutting MRI sample further to improve matching on...')
     message(paste(cur_names_dom_narrowed,collapse = ' '))
     elim_res                                       = agk.domatch.elim(which_studies[1],dfs[1],cur_groups[1],cur_names_dom_narrowed)
@@ -671,32 +671,32 @@ if (import_existing_imp == 0) {
  
   
   # MRI cohort: drop due to Age, edu years, lefthandedness
-  # dat_match_MRT     = subset(dat_match,Cohort == 'MRT')
-  # subs_drop_Age_MRT = dat_match_MRT$VPPG[dat_match_MRT$Age <20] # relevant in HC
-  # subs_drop_Age_MRT = c(subs_drop_Age_MRT,dat_match_MRT$VPPG[dat_match_MRT$Age >60 & dat_match_MRT$HCPG == 'PG'])
-  # subs_drop_Age_MRT = c(subs_drop_Age_MRT,dat_match_MRT$VPPG[dat_match_MRT$Age ==57 & dat_match_MRT$HCPG == 'PG' & dat_match_MRT$handedness == 'links'])
-  # subs_drop_Age_MRT = c(subs_drop_Age_MRT,dat_match_MRT$VPPG[dat_match_MRT$Age ==43 & dat_match_MRT$HCPG == 'PG' & dat_match_MRT$handedness == 'links'])
-  # subs_drop_Age_MRT = c(subs_drop_Age_MRT,dat_match_MRT$VPPG[dat_match_MRT$edu_years > 20]) # relevant in HC
+  # dat_match_MRI     = subset(dat_match,Cohort == 'MRI')
+  # subs_drop_Age_MRI = dat_match_MRI$VPPG[dat_match_MRI$Age <20] # relevant in HC
+  # subs_drop_Age_MRI = c(subs_drop_Age_MRI,dat_match_MRI$VPPG[dat_match_MRI$Age >60 & dat_match_MRI$HCPG == 'PG'])
+  # subs_drop_Age_MRI = c(subs_drop_Age_MRI,dat_match_MRI$VPPG[dat_match_MRI$Age ==57 & dat_match_MRI$HCPG == 'PG' & dat_match_MRI$handedness == 'links'])
+  # subs_drop_Age_MRI = c(subs_drop_Age_MRI,dat_match_MRI$VPPG[dat_match_MRI$Age ==43 & dat_match_MRI$HCPG == 'PG' & dat_match_MRI$handedness == 'links'])
+  # subs_drop_Age_MRI = c(subs_drop_Age_MRI,dat_match_MRI$VPPG[dat_match_MRI$edu_years > 20]) # relevant in HC
   
   
-  #subs_drop_Age_MRT = c(subs_drop_Age_MRT,dat_match_MRT$VPPG[dat_match_MRT$edu_years_voca == 8 & dat_match_MRT$HCPG == 'HC']) # relevant in HC
-  #subs_drop_Age_MRT = c(subs_drop_Age_MRT,dat_match_MRT$VPPG[dat_match_MRT$edu_years_voca == 5 & dat_match_MRT$HCPG == 'HC']) # relevant in HC
-  #subs_drop_Age_MRT = c(subs_drop_Age_MRT,dat_match_MRT$VPPG[dat_match_MRT$edu_years_voca == 4 & dat_match_MRT$HCPG == 'HC']) # relevant in HC
+  #subs_drop_Age_MRI = c(subs_drop_Age_MRI,dat_match_MRI$VPPG[dat_match_MRI$edu_years_voca == 8 & dat_match_MRI$HCPG == 'HC']) # relevant in HC
+  #subs_drop_Age_MRI = c(subs_drop_Age_MRI,dat_match_MRI$VPPG[dat_match_MRI$edu_years_voca == 5 & dat_match_MRI$HCPG == 'HC']) # relevant in HC
+  #subs_drop_Age_MRI = c(subs_drop_Age_MRI,dat_match_MRI$VPPG[dat_match_MRI$edu_years_voca == 4 & dat_match_MRI$HCPG == 'HC']) # relevant in HC
   
   # align the dfs MRI
-  # dfs[[1]] = subset(dfs[[1]],!VPPG %in% subs_drop_Age_MRT)
+  # dfs[[1]] = subset(dfs[[1]],!VPPG %in% subs_drop_Age_MRI)
   
   # # reporting who was dropped due to by-hand matching
-  # cur_grp               = agk.recode(subs_drop_Age_MRT,dat_match$VPPG,as.character(dat_match$HCPG))
-  # elim_matching_by_hand = data.frame(subs_drop_Age_MRT,cur_grp,stringsAsFactors = F)
+  # cur_grp               = agk.recode(subs_drop_Age_MRI,dat_match$VPPG,as.character(dat_match$HCPG))
+  # elim_matching_by_hand = data.frame(subs_drop_Age_MRI,cur_grp,stringsAsFactors = F)
   # cur_text = paste('In MRI study these subs were dropped by hand to improve matching',paste(elim_matching_by_hand,collapse=' '))
   # warning(cur_text)
   # 
   # # align data_pdt and dat_match after do matching
   # warning(paste0("dat_match and data_pdt subjects are aligned after dropping subjects due to matching by hand.\n",
   #                "But dat_match has no interpolation of missing data as was used for printing demography tables."))
-  # data_pdt  = data_pdt[!data_pdt$subject %in% subs_drop_Age_MRT,]
-  # dat_match = dat_match[!dat_match$VPPG %in% subs_drop_Age_MRT,]
+  # data_pdt  = data_pdt[!data_pdt$subject %in% subs_drop_Age_MRI,]
+  # dat_match = dat_match[!dat_match$VPPG %in% subs_drop_Age_MRI,]
   
   # core perfoming matching tests
   disp('Checking matching and printing tables.')
@@ -756,7 +756,7 @@ if (import_existing_imp == 0) {
   if (write_info_mri_selection) {
     # get an MRI Sjinfo for SPM
     cur_MRI        = aggregate(data_pdt[c("HCPG","Cohort")],by=list(data_pdt$subject),FUN=first)
-    cur_MRI        = subset(cur_MRI, Cohort == "MRT")
+    cur_MRI        = subset(cur_MRI, Cohort == "MRI")
     cur_MRI$Cohort = NULL
     names(cur_MRI) = c("subject","group") 
     cur_MRI$group  = ifelse(cur_MRI$group == "PG",1,0)
@@ -836,7 +836,7 @@ if (import_existing_imp == 0) {
   
   # get an MRI Sjinfo for SPM
   cur_MRI        = aggregate(data_pdt[c("HCPG","Cohort")],by=list(data_pdt$subject),FUN=first)
-  cur_MRI        = subset(cur_MRI, Cohort == "MRT")
+  cur_MRI        = subset(cur_MRI, Cohort == "MRI")
   cur_MRI$Cohort = NULL
   names(cur_MRI) = c("subject","group") 
   cur_MRI$group  = ifelse(cur_MRI$group == "PG",1,0)
@@ -918,10 +918,86 @@ if (acc_num == 1) {
   data_pdt_bcp = data_pdt
 }
 
+# get the MRI features
+# loading
+setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
+source("get_phys_and_rating_params_MRI.R")
+setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
+
+# reducing
+if (fmri_extr == 'ngm' | fmri_extr == 'glc') {
+  cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxAccx',names(cr_agg_pp)),grep('PicGamOnxaccX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
+} else if (fmri_extr == 'val') {
+  cr_agg_pp_r = cr_agg_pp[c(names(cr_agg_pp)[c(grep('PicGamOnxvalx',names(cr_agg_pp)),grep('PicGamOnxvalX',names(cr_agg_pp)),grep('SS__grp01_noCov_Pic..._ROI_',names(cr_agg_pp)))],names(cr_agg_pp)[c(grep('subject',names(cr_agg_pp)))])]
+}
+
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*DRN_8',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*AIns',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*PIns',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('_BA_',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('_ACgG',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_.OrG',names(cr_agg_pp_r),invert = T)] # OFC none-gppi extracts
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_MFC',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__grp01.*_MSFG',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_MFC',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_MSFG',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_.*_full_midbrain',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._.OrG',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._Caudate',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Amy.*_._Amy',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._Acc.*_._Acc',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('.*Caudate$',names(cr_agg_pp_r),invert = T)]
+cr_agg_pp_r = cr_agg_pp_r[grep('.*Putamen$',names(cr_agg_pp_r),invert = T)]
+
+# take out PPI StrAs
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs',names(cr_agg_pp_r),invert = T)]
+
+# take out StrAs in general
+cr_agg_pp_r = cr_agg_pp_r[grep('SS__.*_StrAs',names(cr_agg_pp_r),invert = T)]
+
+# rename
+cr_agg_pp_r_MRI = cr_agg_pp_r
+rm(list=c('cr_agg_pp_r','cr_agg_pp'))
+
+# allow PPI StrAs but only caudate and putamen split and do not allow self-connectivities
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAs_',names(cr_agg_pp_r),invert = T)]
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._StrAsPut',names(cr_agg_pp_r),invert = T)]
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._StrAsCaud',names(cr_agg_pp_r),invert = T)]
+# allow only StrAs to OFC
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._StrAsPut',names(cr_agg_pp_r),invert = T)]
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._Acc',names(cr_agg_pp_r),invert = T)]
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsCaud.*_._Amy',names(cr_agg_pp_r),invert = T)]
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._StrAsCaud',names(cr_agg_pp_r),invert = T)]
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._Acc',names(cr_agg_pp_r),invert = T)]
+#cr_agg_pp_r = cr_agg_pp_r[grep('SS__PPI_._StrAsPut.*_._Amy',names(cr_agg_pp_r),invert = T)]
+
 
 # create bcp for select study and other analysis scripts
 data_pdt_bcp  = data_pdt
 dat_match_bcp = dat_match
+
+## prep valence and arousal measure peripheral phys
+data_pdt$scr_arousal  = data_pdt$SCR
+data_pdt$cozy_valence = data_pdt$zygo_auc_stim - data_pdt$corr_auc_stim 
+
+# init of analyses not done yet
+init_done = F
+
+## SAVE THE WORKSPACE FOR CLASSIFICATION AND OTHER ANALYSES ===================
+setwd(path_ana)
+save.image()
+
+## save also to release repository [but discard the cr_agg_pp_r_MRI data, and pp data]
+to_discard = c('zygo_','corr_','eda_','SCR','cozy_')
+for (dd in 1:length(to_discard)) {
+  cur_vars_to_disc = grep(to_discard[dd],names(data_pdt))
+  data_pdt[cur_vars_to_disc] =  NA
+}
+
+cr_agg_pp_r_MRI = NA
+setwd('../../..')
+setwd('PIT_GD_bv_release/R/analyses')
+save.image()
 
 
 
@@ -950,7 +1026,7 @@ dat_match_bcp = dat_match
 # }
 
 # if (get_MRI_extr == 1) {
-#   data_pdt_MRI = subset(data_pdt,Cohort== "MRT")
+#   data_pdt_MRI = subset(data_pdt,Cohort== "MRI")
 #   bold_overall = aggregate(data_pdt_MRI$bold,by=list(data_pdt_MRI$stim),FUN=median,na.rm=T)
 #   names(bold_overall) = c("stim","bold_overall")
 #   bold_bygroup = aggregate(data_pdt_MRI$bold,by=list(data_pdt_MRI$stim,data_pdt_MRI$HCPG),FUN=median,na.rm=T)

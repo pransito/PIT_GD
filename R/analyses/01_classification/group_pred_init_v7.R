@@ -23,6 +23,10 @@ agk.group.pred.init = function() {
   data_pdt = data_pdt_bcp_study_selected
   dat_match = dat_match_bcp_study_selected
   
+  # plot ratings
+  setwd(root_wd)
+  source("01_classification/plot_ratings_betting_behav.R")
+  
   # prep if peripheral physiology or ratings should be added
   if ((add_cr_pp  == 1 || add_cr_ra  == 1) & which_study != 'MRI') {
     # excluding subjects because of missing in pp or ra

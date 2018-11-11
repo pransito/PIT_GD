@@ -118,11 +118,13 @@ base_dat_GD       = paste0('C:/Users/',user,'Google Drive/Promotion/VPPG/VPPG_Ex
 base              = paste("C:/Users/",user,"Google Drive/Promotion/VPPG/VPPG_Exchange/",sep="")
 base_bgg          = paste("C:/Users/",user,"Google Drive/Promotion/VPPG/VPPG_Exchange/",sep="")
 base_lib          = paste("C:/Users/",user,"Google Drive/",sep="")
+path_ghb          = paste0('C:/Users/', user, '/GitHub') # path to GitHub; so far only for the PIT GD behav release
 
 # other working locations
-base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
-base_lib          = "E:/Google Drive/"
-base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
+#base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
+#base_lib          = "E:/Google Drive/"
+#base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
+#path_ghb          = 'E:/GitHub'
 
 
 # some other absolute paths to be set with brute force
@@ -918,6 +920,9 @@ if (acc_num == 1) {
   data_pdt_bcp = data_pdt
 }
 
+# correct the Cohort label for MRI
+data_pdt$Cohort     = agk.recode(data_pdt$Cohort,c('MRT'),c('MRI'))
+
 # get the MRI features
 # loading
 setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
@@ -995,7 +1000,7 @@ for (dd in 1:length(to_discard)) {
 }
 
 cr_agg_pp_r_MRI = NA
-setwd('../../..')
+setwd(path_ghb)
 setwd('PIT_GD_bv_release/R/analyses')
 save.image()
 

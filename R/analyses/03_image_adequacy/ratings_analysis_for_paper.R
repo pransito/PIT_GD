@@ -1,6 +1,8 @@
-# analysis of ratings (gruppenvergleiche/Kategorienvergeliche)
-# First focus on HC group and do category comparisons
-# before starting you need load the data
+# analysis of ratings (comparison of cue categires and groups)
+# run select_study.R with which_study == 'POSTPILOT_HCPG' first
+# the function agk.summarize.models will do a one-group analysis and compare
+# all categories and it will do a group comparison (HC vs. GD)
+# here: "GD" == "PG"
 
 ## LOAD PACKAGES AND DATA =====================================================
 agk.load.ifnot.install('lme4')

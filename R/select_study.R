@@ -7,8 +7,8 @@
 # set to T, if you have this script from GitHub
 FOREIGN_RUN = T
 
+# PREPARATION FOR FOREIGN RUN =================================================
 if (FOREIGN_RUN) {
-  # PREPARATION FOR FOREIGN RUN =================================================
   # root_wd needs to be the folder which holds the "PIT_GD_behav/R/analyses/"
   rm(list=ls())
   root_wd  = paste0(dirname(rstudioapi::getSourceEditorContext()$path),'/analyses/')
@@ -21,8 +21,7 @@ data_pdt     = data_pdt_bcp
 data_pdt_inv = data_pdt
 
 ## PARAMETER SETTINGS =========================================================
-
-#which study to look at (Cohorts)?
+# which study to look at (Cohorts)? ===========================================
 #which_study = "MRI"
 #which_study = "MRI_and_POSTPILOT" # lumping those together (for KFG prediction e.g.)
 which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
@@ -308,5 +307,5 @@ cd('..')
 setwd('analyses/01_classification/')
 init_run = T
 source('group_pred_loop_v7.R')
-init_run  = F
-init_done = T
+init_run     = F
+init_done    = T

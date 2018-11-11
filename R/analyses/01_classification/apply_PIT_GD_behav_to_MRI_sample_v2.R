@@ -1,37 +1,11 @@
 ## PREAMBLE ===================================================================
 # script to apply PIT_GD_behav classifier to MRI data
-# which_study must be set to MRT
-# pred_loop must be run with everything set to 0 so that only init runs
+# which_study must be set to MRI in select_study.R first and run
+if (init_done == F) {
+  stop('You have to first run the select_study.R script with which_study set to "MRI" ')
+}
 
-# YOU HAVE TO run the group_pred_loop_v6.R script once with these settings:
-
-# # WHAT TO RUN =================================================================
-# # just the behavioral parameter sets
-# outer_cv_noaddfeat_noperm = 0 # with outer CV, getting generalization error
-# outer_cv_noaddfeat_wiperm = 0 # with permutation [not recommended*]
-# noout_cv_noaddfeat_noperm = 0 # no outer CV, get class on whole sample
-# 
-# # behavior plus peripheral-physiological stuff
-# outer_cv_wiaddfeat_noperm = 0 # adding physio
-# outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
-# noout_cv_wiaddfeat_noperm = 0 # adding physio
-# 
-# # only peripheral-physiological / MRI
-# outer_cv_addfeaton_noperm = 0 # Ha only, i.e. physio/MRI  
-# outer_cv_addfeaton_wiperm = 0 # with permutation [not recommended*]
-# noout_cv_addfeaton_noperm = 0 # to get the complete model 
-# 
-# outer_cv_c_model_noperm   = 0 # control model/null-model for classification;
-# # not needed for MRI case (p-value comp in dfferent script)
-# 
-# # what to report
-# do_report                 = 0
-# do_report_no_added_feat   = 0
-# do_report_with_added_feat = 0
-# do_report_feat_only       = 0
-
-stopifnot(which_study == 'MRT') 
-
+stopifnot(which_study == 'MRI') 
 
 # functions
 get.truth = function() {
@@ -46,12 +20,7 @@ get.truth.2 = function() {
   sample(c(rep('HC',2),rep('PG',2)))
 }
 
-# params
-apply_stand = 1
-do_clean    = 0
-
-
-# set runs
+# set runs of random classification
 runs0 = 10000
 
 # under 0
@@ -91,8 +60,8 @@ for (ii in 1:runs0) {
 }
 
 ## use a consensus of ALL models from PDT behav ===============================
-# setwd(paste0(root_wd,'/results/1010/'))
-setwd(paste0(root_wd,'/results/1010/'))
+setwd(root_wd)
+setwd('01_classification/results/1010/')
 load('POSTPILOT_HCPG_predGrp1_rounds_noo_noaddfeat.RData')
 
 # get the standardization
@@ -118,27 +87,13 @@ for (mm in 1:length(list_winning_model_c_nooCV)) {
   
   mr_b_dat = featmod_coefs[[cur_m]]
   mr_b_dat = mr_b_dat[,grep('HCPG',names(mr_b_dat),invert=T)]
-  
-  if (do_clean) {
-    res      = agk.clean.vars(mr_b_dat,dat_match = dat_match,vars_to_cov = 'smoking_ftdt',clean_inf_crit = 'AIC')
-    mr_b_dat = res$cr_agg_pp_cleaned
-  }
-  
-  if (apply_stand) {
-    
-     # apply the standardization and get decision value
-    setwd(paste0(root_wd,'/results/1010/'))
-    
-    load(paste0('POSTPILOT_', cur_m,'_stand.RData'))
-    pp_scale = attributes(pp_b_dat)
-    
 
-    mr_b_dat = data.frame(mr_b_dat,pred_smoking_ftdt = dat_match$smoking_ftdt)
-    mr_b_dat = scale(mr_b_dat,center = pp_scale$`scaled:center`, scale = pp_scale$`scaled:scale`)
-  }
-  
+  # apply the standardization and get decision value
+  load(paste0('POSTPILOT_', cur_m,'_stand.RData'))
+  pp_scale = attributes(pp_b_dat)
 
-  
+  mr_b_dat = data.frame(mr_b_dat,pred_smoking_ftdt = dat_match$smoking_ftdt)
+  mr_b_dat = scale(mr_b_dat,center = pp_scale$`scaled:center`, scale = pp_scale$`scaled:scale`)
   mr_b_dat = data.frame(ones(length(mr_b_dat[,1]),1),mr_b_dat)
   
   # prediction
@@ -205,14 +160,26 @@ p = p + theme(axis.text=element_text(size=14, face = "bold"),
 print(p)
 
 ## two density plots ==============================================================
+agk.make.as.long = function(x1,x2) {
+  if (length(x1) < length(x2)) {
+    x1 = rep_len(x1,length.out = length(x2))
+  } else {
+    x2 = rep_len(x2,length.out = length(x1))
+  }
+  return(list(x1 = x1, x2 = x2))
+}
+
 Ha_auc               = real_aucs
+cur_res              = agk.make.as.long(all_aucs,Ha_auc)
+all_aucs             = cur_res$x1
+Ha_auc               = cur_res$x2
 cur_dat_gl           = data.frame(H0 = all_aucs,Ha_auc = Ha_auc,classifier = 'full_classifier')
 cur_dat              = rbind(cur_dat_gl) #rbind(cur_dat_be,cur_dat_gl,cur_dat_sv)
 cur_dat              = melt(cur_dat,id.vars = c('classifier'))
 
 # plot
 p = ggplot(cur_dat,aes(x=value, fill=variable)) + geom_density(alpha=0.25)
-p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for MRI glmnet classifier compared to random classifier')
+p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for glmnet classifier on MRI behav data compared to random classifier')
 p = p + geom_vline(aes(xintercept = as.numeric(all_mod_mean_auc)),colour = 'green',size= 1.5)
 p = p + theme_bw()
 p = p + theme(axis.text=element_text(size=14, face = "bold"),

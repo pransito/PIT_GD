@@ -1,17 +1,17 @@
 ## PREAMBLE ===================================================================
-# univariate tests; classical group-mean-differences tests/mixed ANOVAs
+# PIT GD behav study
+# classical group-mean-differences tests/mixed ANOVAs (using lme4)
 # script to describe acceptance rate
 # script to fit glmer models to answer questions on acceptance rate,
 # loss aversion, effects of category and group
 # model comparison to get significance of overall effect of e.g. group or category
-# fixed effects of parameters and CIs will be based on bootstrapping non-parametrically
-# the fixed effects
-# permutation test to get p-value for parameters
+# on gain and loss
+# plotting sensitivity to gain, loss and plotting loss aversion per group
 
 # BEFORE RUNNING THIS SCRIPT
 # YOU HAVE TO run the R/select_study.R script with which_study = "POSTPILOT_HCPG"
 
-## SETTINGS ===================================================================
+## SETTINGS [nothing to change here ==============================================
 # control object for the glmer fitting
 cur_control = glmerControl(check.conv.grad="ignore",
                            check.conv.singular="ignore",
@@ -20,6 +20,8 @@ cur_control = glmerControl(check.conv.grad="ignore",
 # do the boot / permutation test or just load prepared results?
 # attention: it takes over an hours to run the permuation test for loss aversion group comparison
 doBootPerm = 0
+# bootstrap for plotting cfint's of beta gain and beta loss (already done)
+doBoot     = 0
 # wd for saving the results of the bootstraps
 setwd(root_wd)
 setwd('02_univariate_testing/results/effects_under_0_la')
@@ -38,6 +40,10 @@ cur_cpus  = detectCores()-1
 # fit glmer models?
 # careful this takes on an intel core i7 with 8GB RAM about 10 minutes
 doFitGlmer = 1
+# test if correct study
+stopifnot(which_study == 'POSTPILOT_HCPG')
+# put in the original fixed effect estimation
+put_in_original_fe = 1
 
 ## glmer models acceptance rate ===============================================
 if (doFitGlmer) {
@@ -56,7 +62,8 @@ if (doFitGlmer) {
   modla_cg  = glmer(accept_reject ~ (gain + loss )*HCPG + cat*HCPG + (gain + loss + cat |subject) + (gain + loss |stim)  + (gain + loss |cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
   modla_cgi = glmer(accept_reject ~ (gain + loss )*cat*HCPG + ((gain + loss )*cat|subject) + (gain + loss |stim),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
   modla_ci  = glmer(accept_reject ~ (gain + loss )*cat + ((gain + loss )*cat|subject) + (gain + loss |stim),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
-}
+  
+  }
 
 ## check model fit per subject
 cur_dp         = modla_cg@frame
@@ -103,68 +110,78 @@ anova(moda_00,moda_01,moda_02)
 # stats without cat (simple acceptance rate difference between groups)
 anova(moda_00,moda_01b)
 
-## loss aversion (la) overall and group comparison ############################
+## loss aversion (la) overall and group comparison ============================
 # stats glmer
-anova(modla_00,modla_01,modla_c0,modla_cg,modla_cgi)
-anova(modla_00,modla_01,modla_0g)
+anova(modla_00,modla_01,modla_0g,modla_cg,modla_cgi) # all models
+anova(modla_00,modla_01,modla_0g)                    # only loss aversion relevant
 
-# permutation tests of single parameters
-if (doBootPerm) {
-  setwd(bootResWd)
-  
-  fun_extr = function(cur_mod) {
-    ## extraction function to return fixeffect and mse
-    cur_fe  = fixef(cur_mod)
-    cur_mse = mean((1/(1+exp(-predict(cur_mod)))-as.numeric(as.character(cur_mod@frame$accept_reject)))^2)
-    cur_fe  = c(cur_fe,cur_mse)
-    names(cur_fe)[length(cur_fe)] = 'mse'
-    return(cur_fe)
-  }
-  
-  # PERMUTATION TESTS
+## plot loss aversion between groups ==========================================
+# bootstrap the CIs
+setwd(bootResWd)
+if (doBoot == 1) {
   # bootstrap p-value modla_0g (permutation)
-  effects_under_0_0g = agk.boot.p.mermod(mermod = modla_0g,mermod0 = modla_01,num_cpus = cur_cpus,num = cur_num,fun_extract = fun_extr,cur_control = cur_control,permvars = c('HCPG'),type='perm')
-  save(file= 'effects_under_0_0g_perm_1000_wc.RData',list=c('effects_under_0_0g'))
+  effects_under_0_0g = agk.boot.p.mermod(mermod = modla_0g,mermod0 = modla_01,num_cpus = cur_cpus,num = cur_num,fun_extract = fixef,cur_control = cur_control,permvars = c('HCPG'),type='perm')
+  save(file= 'effects_under_0_0g_perm_1000.RData',list=c('effects_under_0_0g'))
+  
+  # bootstrap cfint modla_0g (np boot)
+  boot_cfint_0g = agk.boot.cfint.mermod(mermod = modla_0g,num_cpus = cur_cpus,num = cur_num,fun_extract = fixef,cur_control = cur_control,type = 'non-parametric')
+  save(file = 'boot_cfint_0g_1000.RData',list=c('boot_cfint_0g'))
 }
 
-# just la and using the fixef of the model
-if (which_study == 'MRI') {
-  setwd(bootResWd)
-  load('effects_under_0_0g_perm_1000_wc.RData')
-  la_HC     = -bl_HC/bg_HC
-  la_PG     = -bl_PG/bg_PG
-  la_HCgrPG = la_HC-la_PG 
-  obs_e     = get_la_fixef_pdt(modla_0g)
-  message('P-value that loss aversion coefficient is different between HC and GD (two-sided test):')
-  message(agk.density_p(la_HCgrPG,obs_e['x_la_HCgrPG'],type = 'two.sided'))
-} else if (which_study == 'POSTPILOT_HCPG') {
-  setwd(bootResWd)
-  e = new.env()
-  load('effects_under_0_0g_perm_1000_wc.RData',envir = e)
-  bl_fun    = function(x) {return(x['loss'])}
-  bg_fun    = function(x) {return(x['gain'])}
-  blgd_fun  = function(x) {return(x['loss'] + x['loss:HCPGPG'])}
-  bggd_fun  = function(x) {return(x['gain'] + x['gain:HCPGPG'])}
-  bl_HC     = unlist(lapply(e$effects_under_0_0g,FUN=bl_fun))
-  bg_HC     = unlist(lapply(e$effects_under_0_0g,FUN=bg_fun))
-  bl_GD     = unlist(lapply(e$effects_under_0_0g,FUN=blgd_fun))
-  bg_GD     = unlist(lapply(e$effects_under_0_0g,FUN=bggd_fun))
-  la_HC     = -bl_HC/bg_HC
-  la_PG     = -bl_GD/bg_GD
-  la_HCgrPG = la_HC-la_PG 
-  obs_e     = get_la_fixef_pdt(modla_0g)
-  message('P-value that loss aversion coefficient is different between HC and GD (two-sided test):')
-  message(agk.density_p(la_HCgrPG,obs_e['x_la_HCgrPG'],type = 'two.sided'))
-  message('P-value that beta loss coefficient is different between HC and GD (two-sided test):')
-  message(agk.density_p(bl_HC-bl_GD,obs_e['bl_HC'] - obs_e['bl_PG'],type = 'two.sided'))
-  message('P-value that beta gain coefficient is different between HC and GD (two-sided test):')
-  message(agk.density_p(bg_HC-bg_GD,obs_e['bg_HC'] - obs_e['bg_PG'],type = 'two.sided'))
+# graph fixed effects la model
+# alternative graph using cfint from fixed effects bootstrap
+cie    = new.env()
+load('boot_cfint_0g_1000_wc.RData',envir = cie)
+rcfint = cie$boot_cfint_0g[[1]]
+for (cc in 2:length(cie$boot_cfint_0g)) {
+  rcfint = rbind(rcfint,cie$boot_cfint_0g[[cc]])
 }
 
+# add the original
+rcfint = rbind(rcfint,fixef(modla_0g))
 
-# overall permuation test; is the MSE of modla_0g better than the permuted version of modla_0g?
-message('overall permuation test; is the MSE of modla_0g better than the permuted version of modla_00?')
-message((paste('p-value ofermutation test group for:','mse')))
-mse_a = mean((1/(1+exp(-predict(modla_0g)))-as.numeric(as.character(modla_0g@frame$accept_reject)))^2)
-message(' ')
-message((agk.density_p(mse,mse_a)))
+# df of bootstrap data
+rcfint           = data.frame(rcfint)
+names(rcfint)[1] = c('Intercept')
+rcfint_HC        = rcfint[c('Intercept','gain','loss')]
+rcfint_PG        = rcfint[c('HCPGPG','gain.HCPGPG','loss.HCPGPG')] + rcfint_HC
+names(rcfint_PG) = c('Intercept','gain','loss')
+rcfint_HC$group  = 'HC'
+rcfint_PG$group  = 'PG'
+rcfint           = rbind(rcfint_HC,rcfint_PG)
+rcfint$la        = -rcfint$loss/rcfint$gain
+
+rcfinta         = aggregate(.~group,data=rcfint,FUN=agk.mean.quantile,lower=0.025,upper=0.975)
+rcfintdf        = data.frame(rcfinta[[1]],rcfinta[[2]])
+names(rcfintdf) = c('Group','mean','ci_0025','ci_0975')
+rcfintdf$var    = names(rcfinta)[2] 
+for (rr in 3:length(rcfinta)) {
+  cur_df        = data.frame(rcfinta[[1]],rcfinta[[rr]])
+  names(cur_df) = c('Group','mean','ci_0025','ci_0975')
+  cur_df$var    = names(rcfinta)[rr] 
+  rcfintdf      = rbind(rcfintdf,cur_df)
+}
+la_overall = rcfintdf
+
+if (put_in_original_fe) {
+  # put in the original fe
+  obs_fixef      = get_la_fixef_pdt(modla_0g)
+  cur_vars       = unique(la_overall$var)
+  cur_fe_HC      = obs_fixef[c(1,3,5,7)]
+  cur_fe_PG      = obs_fixef[c(2,4,6,8)]
+  for (gg in 1:length(cur_vars)) {
+    la_overall$mean[la_overall$Group == 'HC' & la_overall$var == cur_vars[gg]] = cur_fe_HC[gg]
+    la_overall$mean[la_overall$Group == 'PG' & la_overall$var == cur_vars[gg]] = cur_fe_PG[gg]
+  }
+}
+
+# actul plotting
+la_overall$var = factor(la_overall$var, levels = c('la','gain','loss','Intercept'))
+mRat           = ggplot(la_overall, aes(Group, mean,fill = var))
+mRat           = mRat + labs(x='Group', y=paste('Mean of LA (',0.95*100,'% CI, bootstrapped)'))
+mRat           = mRat + ggtitle("Fixed effects for loss aversion parameters per group")
+mRat           = mRat + geom_bar(position="dodge", stat="identity")
+dodge          = position_dodge(width=0.9)
+mRat           = mRat + geom_bar(position=dodge, stat="identity")
+mRat           = mRat + geom_errorbar(aes(ymin = ci_0025, ymax = ci_0975), position=dodge, width=0.25) + theme_bw()
+print(mRat)

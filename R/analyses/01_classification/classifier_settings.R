@@ -49,8 +49,8 @@ do_report_no_added_feat   = 1
 # 24: behav; NO within-z; auc; no cleaning; control model instead with smoking
 runs = 1
 
-
-# advanced settings for other studies [cannot be used in PIT GD behav release]
+# advanced settings for other studies =========================================
+# [cannot be used in PIT GD behav release] 
 if (which_study == 'MRI') {
   # Any reporting of p-values against null? Set to F if you do that in a separate script.
   report_CV_p = T

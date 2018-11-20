@@ -8,7 +8,7 @@ row.names(dat_match)  = dat_match$VPPG
 pit_vars              = fm$ac
 pit_vars              = agk.clean.intercept.name(pit_vars)
 names(pit_vars)       = paste0('ac_',names(pit_vars))
-pit_vars$ac_Intercept = NULL
+#pit_vars$ac_Intercept = NULL
 la_vars               = fm$la_LA
 la_vars               = la_vars[c('gain','loss','LA')]
 names(la_vars)        = paste0('la_',names(la_vars))
@@ -18,19 +18,14 @@ stopifnot(which_study == "MRI_and_POSTPILOT")
 # merging
 cur_merge = agk.merge.df.by.row.names(dat_match,pit_vars)
 cur_merge = agk.merge.df.by.row.names(cur_merge,la_vars)
-cur_merge = subset(cur_merge, HCPG == 'PG')
+#cur_merge = subset(cur_merge, HCPG == 'PG')
 
 # selecting vars
-behav_params  = cur_merge[c(grep('^ac_',names(cur_merge)),grep('^la_',names(cur_merge)))]
-des_params    = c('BDI', 'BIS','BIS_AmBasImp','BIS_NPlanImp','BIS_Mot', 'audit', 'KFG', 'GBQ','GBQ_illus','GBQ_persi' ,'edu_years', 'smoking_ftdt')
-constr_params = cur_merge[des_params]
-
-# mean imputation for BDI
-constr_params$BDI = agk.impute.mean(constr_params$BDI)
+pitla_params    = cur_merge[c(grep('^ac_',names(cur_merge)),grep('^la_',names(cur_merge)))]
 
 # correlation
-r_sp   = corr.test(behav_params,constr_params,adjust = 'none',method = 'spearman')
-r_ps   = corr.test(behav_params,constr_params,adjust = 'none',method = 'pearson')
+r_sp   = corr.test(pitla_params,adjust = 'none',method = 'spearman')
+r_ps   = corr.test(pitla_params,adjust = 'none',method = 'pearson')
 r_ps_p = r_ps$p
 r_sp_p = r_sp$p
 
@@ -62,19 +57,4 @@ agk.plot.cor.if.sig = function(r_ps_p,r_sp_p,behav_params, constr_params, criter
   message(paste0('There were ', ct, ' sig. correlations found with criterion ', criterion,'.'))
 }
 
-agk.plot.cor.if.sig(r_sp$p,r_ps$p,behav_params,constr_params,'both')
-
-# function to check correlations based on lmperm
-agk.report.lmperm.corr(df1,df2) {
-  for (vv in df1) {
-    for(ww in df2) {
-      cur_mod = lmPerm::lmp(vv~ww,center = T,Ca = 0.000000001,nCycle = 1)
-      cur_sum = summary(cur_mod)
-      cur_p   = cur_sum$coefficients[2,3]
-      if(cur_p < 0.05) {
-        plot(vv,ww)
-      }
-    }
-  }
-}
-
+agk.plot.cor.if.sig(r_sp$p,r_ps$p,pitla_params,pitla_params,'both')

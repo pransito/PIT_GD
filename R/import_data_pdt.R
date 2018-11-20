@@ -121,10 +121,10 @@ base_lib          = paste("C:/Users/",user,"Google Drive/",sep="")
 path_ghb          = paste0('C:/Users/', user, '/GitHub') # path to GitHub; so far only for the PIT GD behav release
 
 # other working locations
-#base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
-#base_lib          = "E:/Google Drive/"
-#base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
-#path_ghb          = 'E:/GitHub'
+base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
+base_lib          = "E:/Google Drive/"
+base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
+path_ghb          = 'E:/GitHub'
 
 
 # some other absolute paths to be set with brute force
@@ -992,17 +992,18 @@ init_done = F
 setwd(path_ana)
 save.image()
 
-## save also to release repository [but discard the cr_agg_pp_r_MRI data, and pp data]
-to_discard = c('zygo_','corr_','eda_','SCR','cozy_')
-for (dd in 1:length(to_discard)) {
-  cur_vars_to_disc = grep(to_discard[dd],names(data_pdt))
-  data_pdt[cur_vars_to_disc] =  NA
-}
-
-cr_agg_pp_r_MRI = NA
-setwd(path_ghb)
-setwd('PIT_GD_bv_release/R/analyses')
-save.image()
+# ## save also to release repository [but discard the cr_agg_pp_r_MRI data, and pp data]
+# to_discard = c('zygo_','corr_','eda_','SCR','cozy_')
+# for (dd in 1:length(to_discard)) {
+#   cur_vars_to_disc = grep(to_discard[dd],names(data_pdt))
+#   data_pdt[cur_vars_to_disc] =  NA
+# }
+# cr_agg_pp_r_MRI = NA
+# setwd(path_ghb)
+# # discard all the path information
+# rm(list = ls()[grep('path',ls())])
+# setwd('PIT_GD_bv_release/R/analyses')
+# save.image()
 
 
 

@@ -115,7 +115,7 @@ all_alphas            = F
 box_width             = 800
 # what predictors to control for
 if (which_study == 'MRT') {
-  pred_to_control = c()
+  pred_to_control = c('edu_years')
 } else {
   pred_to_control = c('smoking_ftdt')
 }
@@ -283,7 +283,7 @@ if (noout_cv_addfeaton) {
 # OUTERCV, CONTROL MODEL =====================================================
 # the control model; intercept only, or only the control variables
 if (outer_cv_c_model) {
-  agk.pred.group.CV(outer_CV = T,addfeat=F,add_cr_pp_ma = F,add_cr_ra_ma = F,des_seed,addfeat_only = F,c_mod = T)
+  agk.pred.group.CV(outer_CV = T,addfeat=F,add_cr_pp_fn = F,add_cr_ra_fn = F,des_seed,addfeat_only = F,c_mod = T)
 }
 
 # REPORTING: PREPARATION =====================================================

@@ -77,10 +77,8 @@ agk.pred.group.CV = function(outer_CV,addfeat,add_cr_pp_fn,add_cr_ra_fn,des_seed
   # prep progress bar
   pb = curpbfun(title = cur_title, min = 0,max = runs, width = box_width)
   
-  # OLD
-  #list_winning_model = list()
-  #cur_mod_sel_vec    = c()
-  # OLD
+  # get into wd
+  setwd("01_classification/")
   
   ## run the loop for (outer) CV
   for(hh in 1:runs) {

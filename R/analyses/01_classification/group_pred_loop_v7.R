@@ -114,10 +114,12 @@ all_alphas            = F
 # message box width
 box_width             = 800
 # what predictors to control for
-if (which_study == 'MRT') {
+if (which_study == 'MRI') {
   pred_to_control = c('edu_years')
-} else {
+} else if (which_study == 'POSTPILOT_HCPG') {
   pred_to_control = c('smoking_ftdt')
+} else {
+  stop ('Unknown value of "which_study".')
 }
 # how many times should full model fit repeated with different folds to get
 # mean model? glmnet or svm
@@ -129,7 +131,7 @@ regress_out_covs      = 0
 # regress out covs (cleaning MRI data) information criterion
 clean_inf_crit        = 'AIC'
 # what predictors to clean for
-if (which_study == 'MRT') {
+if (which_study == 'MRI') {
   pred_to_clean = c('edu_years')
 } else {
   pred_to_clean = c('smoking_ftdt')
@@ -219,7 +221,7 @@ c_mod_report = T
 add_cr_pp   = add_cr_pp_ma
 add_cr_ra   = add_cr_ra_ma
 
-if (which_study == 'MRT_and_POSTPILOT') {
+if (which_study == 'MRI_and_POSTPILOT') {
   add_cr_pp   = 0
   add_cr_ra   = 0
 }
@@ -687,23 +689,11 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
   ci_res$coef[ci_res$coef == 'Intercept']    = 'Int_behav_model'
   ci_res$coef[ci_res$coef == 'X.Intercept.'] = 'Int_classifier'
   
-  labels_sources = c("catgambling","catnegative","catpositive","Int_behav_model","Int_classifier","smoking_ftdt") 
+  labels_sources = c("catgambling","catnegative","catpositive","Int_behav_model","Int_classifier","edu_years") 
   ci_res$coef    = factor(ci_res$coef)
   labels_betas   = agk.recode(levels(ci_res$coef),labels_sources,
-                              c("gambling cues","negative cues","positive cues","intercept behavioral model","intercept of classifier","smoking severity"))
+                              c("gambling cues","negative cues","positive cues","intercept behavioral model","intercept of classifier","years of education"))
   ci_res$coef    = factor(ci_res$coef, levels = levels(ci_res$coef), labels = labels_betas)
-  
-  if (which_study == 'MRT') {
-    # names simpler:
-    ci_res$coef = gsub('SS__grp01_noCov_','',ci_res$coef)
-    ci_res$coef = gsub('SS__','',ci_res$coef)
-    ci_res$coef = gsub('PicGamOnxAcc','PIT',ci_res$coef)
-    ci_res$coef = gsub('PicGamOnxacc','PIT',ci_res$coef)
-    ci_res$coef = gsub('ROI_LR_','',ci_res$coef)
-    ci_res$coef = gsub('_LR','',ci_res$coef)
-    ci_res$coef = gsub('noCov_PPI_','',ci_res$coef)
-    ci_res$coef = gsub('X','x',ci_res$coef)
-  }
   
   p = ggplot(data = ci_res, aes(coef,mean))
   p = p+geom_bar(stat="identity")
@@ -716,43 +706,10 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
   p = p + xlab("regression weights")
   print(p)
   
-  if (which_study == 'MRT') {
-    # giving a grouped overview
-    grouping                                                  = rep(NA,length(ci_res$coef))
-    grouping[grep('^Pic',ci_res$coef)]                        = 'cue_reactivity'
-    grouping[grep('^PPI_Amy.*OrG',ci_res$coef)]               = 'Amy_to_OFC'
-    grouping[grep('^PPI_Amy.*StrAsCaud',ci_res$coef)]         = 'Amy_to_Striatum'
-    grouping[grep('^PPI_Amy.*StrAsPut',ci_res$coef)]          = 'Amy_to_Striatum'
-    grouping[grep('^PPI_Amy.*Acc',ci_res$coef)]               = 'Amy_to_Striatum'
-    grouping[grep('^PIT',ci_res$coef)]                        = 'PIT'
-    grouping[grep('^PPI_Acc_',ci_res$coef)]                   = 'Accumbens_to_Str_Amy'
-    ci_res$coef[ci_res$coef == 'x.grp_classifier_intercept.'] = 'Classifier_Icpt'
-    grouping[grep('Classifier_Icpt',ci_res$coef)]             = 'cue_reactivity'
-    
-    ci_res$grouping = factor(grouping,levels = c('cue_reactivity','PIT','Amy_to_OFC','Amy_to_Striatum','Accumbens_to_Str_Amy'),
-                             labels = c('cue reactivity','PIT','PPI PIT seed Amygdala to OFC','PPI PIT seed Amygdala to Accumbens','PPI PIT seed Accumbens to Amygdala'))
-    
-    # shorter names even
-    ci_res$coef = gsub('Accumbens','Acc',ci_res$coef)
-    ci_res$coef = gsub('Amygdala','Amy',ci_res$coef)
-    ci_res$coef = gsub('PPI','c',ci_res$coef)
-    ci_res$coef = gsub('PITx','PIT',ci_res$coef)
-    ci_res$coef = gsub('c_','c',ci_res$coef)
-    ci_res$coef = gsub('StrAso','StrAs',ci_res$coef)
-    ci_res$coef = gsub('StrAs','',ci_res$coef)
-    ci_res$coef = gsub('ROI_','',ci_res$coef)
-    ci_res$coef = gsub('Picgam_','gam_',ci_res$coef)
-    ci_res$coef = gsub('Picneg_','neg_',ci_res$coef)
-    ci_res$coef = gsub('Picpos_','pos_',ci_res$coef)
-    ci_res$coef = gsub('^PITpos_','pos_',ci_res$coef)
-    ci_res$coef = gsub('^PITneg_','neg_',ci_res$coef)
-    ci_res$coef = gsub('^PITgam_','gam_',ci_res$coef)
-    ci_res$coef = gsub('^cAmy','Amy',ci_res$coef)
-    ci_res$coef = gsub('^cAcc','Acc',ci_res$coef)
-    ci_res$coef = gsub('^AccPITgam','Acc_PITgam',ci_res$coef)
-    ci_res$coef = gsub('^AccPITneg','Acc_PITneg',ci_res$coef)
-    ci_res$coef = gsub('^AccPITpos','Acc_PITpos',ci_res$coef)
-    
+  if (which_study == 'MRI') {
+
+    # short names and grouping
+    ci_res = agk.mri.shorter.and.grouped.names(ci_res)
     
     # plotting grouped
     message('displaying the set grouped')
@@ -776,6 +733,60 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
       return(sign(x[1]) == sign(x[2])) 
     }
     sum(apply(ci_res_upper_lower,MARGIN = 1,FUN = cur_fun))
+    
+    # the top betas
+    ci_res_ordered = ci_res[order(abs(ci_res$mean),decreasing = T),]
+    message('The strongest betas are:')
+    print(ci_res_ordered[1:4,])
+    
+    # get the mixing matrix A to interpret not W (the unmixing vector), but the actual channel behavior
+    # Haufe et al. 2014, Eq. 7
+    X           = feature_clusters[[2]]
+    X$edu_years = as.numeric(agk.recode.c(row.names(X),dat_match$VPPG,dat_match$edu_years))
+    X$HCPG      = NULL
+    X           = agk.scale.ifpossible(X)
+    cov_X       = cov(X)
+    
+    # using all weight vectors
+    all_ws              = win_mod_coefs
+    all_ws$X.Intercept. = NULL
+    all_ws              = as.data.frame(lapply(all_ws,as.numeric))
+    stopifnot(colnames(cov_X) == names(all_ws))
+    
+    # get the importance at every channel (predictor)
+    all_As = cov_X %*% as.matrix(as.numeric(all_ws[1,]))
+    for (aa in 2:length(all_ws[,1])) {
+      all_As = cbind(all_As,cov_X %*% as.matrix(as.numeric(all_ws[aa,])))
+    }
+    
+    # get the importance mean, and ci bootstrapped (quantile!)
+    all_As      = data.frame(t(all_As))
+    all_As      = lapply(all_As,agk.mean.quantile.c,lower = 0.025,upper=0.975)
+    all_As      = data.frame(all_As)
+    all_As      = t(all_As)
+    all_As      = as.data.frame(all_As)
+    all_As$coef = row.names(all_As)
+    
+    # shorter names and grouping
+    all_As = agk.mri.shorter.and.grouped.names(all_As)
+    
+    # plot
+    p = ggplot(data = all_As, aes(coef,mean))
+    p = p+geom_bar(stat="identity")
+    p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
+                          width = 0) + ylab("mean (95% CI over CV rounds)\n\n\n")
+    
+    p <- p + ggtitle("Estimated predictor importance with 95% quantiles") + theme_bw()
+    p = p + theme(text = element_text(size=15),
+                  axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
+    p = p + facet_wrap(~ grouping, scales = "free_x",nrow=3,ncol=2)
+    print(p)
+    
+    # the top betas
+    all_As_ordered = all_As[order(abs(all_As$mean),decreasing = T),]
+    message('The strongest betas are:')
+    print(all_As_ordered[1:4,])
+    
   }
 }
 

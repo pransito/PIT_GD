@@ -13,8 +13,11 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 
 ## PARAMETERS =================================================================
 ## parameters that may be set
+# export data to PIT GD MRI or PIT GD behav release
+# none, MRI, behav
+data_release             = 'MRI'
 # use last exisiting import
-import_existing_imp      = 1
+import_existing_imp      = 0
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
 import_from_scratch      = 0
@@ -78,7 +81,7 @@ KFG_cutoff               = 16
 # set desired_n to too high value if you do not want to do the matching for a particular study
 which_studies            = c("MRI","POSTPILOT")
 # how many subjects per group desired?
-desired_n                = list(c(32,32),c(30,30))
+desired_n                = list(c(35,35),c(40,40))
 # for matching (dom: do matching variables, do matching variables narrowed for elimination of couples)
 # cut out: 'edu_years_voca','edu_hollingshead'
 
@@ -118,13 +121,13 @@ base_dat_GD       = paste0('C:/Users/',user,'Google Drive/Promotion/VPPG/VPPG_Ex
 base              = paste("C:/Users/",user,"Google Drive/Promotion/VPPG/VPPG_Exchange/",sep="")
 base_bgg          = paste("C:/Users/",user,"Google Drive/Promotion/VPPG/VPPG_Exchange/",sep="")
 base_lib          = paste("C:/Users/",user,"Google Drive/",sep="")
-path_ghb          = paste0('C:/Users/', user, '/GitHub') # path to GitHub; so far only for the PIT GD behav release
+path_ghb          = paste0('C:/Users/', user, 'GitHub') # path to GitHub; so far only for the PIT GD behav release
 
 # other working locations
-base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
-base_lib          = "E:/Google Drive/"
-base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
-path_ghb          = 'E:/GitHub'
+#base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
+#base_lib          = "E:/Google Drive/"
+#base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
+#path_ghb          = 'E:/GitHub'
 
 
 # some other absolute paths to be set with brute force
@@ -148,7 +151,7 @@ path_que          = paste0(base,"Bilderrating/Results_Pretest/Result files/quest
 path_que_pp       = paste0(base,"Bilderrating/Results_Pretest/Result files/import old physio pretest questions")
 #path_scr          = paste0(base,'Screening/Screening_Export')
 path_scr          = path_que
-path_mrt          = paste0(base_dat,'/MRI/')
+path_MRI          = paste0(base_dat,'MRI/')
 path_led          = paste0(base,"Experimente/PDT/ledaLab_anal/")
 path_lib          = paste0(base_lib,"Library/R")
 path_plb          = paste0(base_lib,"Library/01_Projects/PIT_GD/R/analyses")
@@ -638,37 +641,75 @@ if (import_existing_imp == 0) {
   dfs = agk.interpolating.dat_match(dfs,cur_groups,cur_names,cur_gr_levs)
   
   if (do_matching) {
-    # do matching: find best matching subject for each subject
+    # do matching: find best matching subject for each subject [mainly for Postpilot because MRI set to c(32,32)]
     matching_res          = agk.domatch(which_studies,desired_n,dfs,cur_groups,cur_names_dom)
     dfs                   = matching_res$dfs
     dropped_subs_matching = matching_res$dropped_HCs_PGs
     
-    # elimate further, in the MRI study at least, to improve matching [MRI: study 1]
-    message('I am cutting MRI sample further to improve matching on...')
-    message(paste(cur_names_dom_narrowed,collapse = ' '))
-    elim_res                                       = agk.domatch.elim(which_studies[1],dfs[1],cur_groups[1],cur_names_dom_narrowed)
-    dfs[[1]]                                       = elim_res$dfs[[1]]
-    dropped_subs_matching[[1]]$dropped_HC_matching = c(dropped_subs_matching[[1]]$dropped_HC_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_HC_matching)
-    dropped_subs_matching[[1]]$dropped_PG_matching = c(dropped_subs_matching[[1]]$dropped_PG_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_PG_matching)
+    # get the matching that worked from autumn 2018
+    # also back upped here: S:\AG\AG-Spielsucht2\Daten\VPPG_Daten\MRT\MRT_sample
+    setwd('C:/Users/genaucka/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/pilot')
+    sjinfo_30_30 = R.matlab::readMat('Sjinfo_30_30.mat')
+    mri_incl    = as.character(unlist(sjinfo_30_30$'Sjinfo'[1][1][[1]][1]))
+    mri_excl    = dfs[[1]]$VPPG[!dfs[[1]]$VPPG %in% mri_incl]
+    mri_excl_PG = dfs[[1]]$VPPG[!dfs[[1]]$VPPG[dfs[[1]]$HCPG == 'PG'] %in% mri_incl]
+    mri_excl_HC = dfs[[1]]$VPPG[!dfs[[1]]$VPPG[dfs[[1]]$HCPG == 'HC'] %in% mri_incl]
+    message('I am cutting MRI sample to improve matching...')
+    cur_text = paste("In study", which_studies[1],"these subjects were dropped to improve matching:\n",
+                     "HC:",paste(mri_excl_HC,collapse = " "),"\n",
+                     "PG:",paste(mri_excl_PG,collapse = " "))
+    message(cur_text)
     
+    # get the matching that worked from autumn 2018 (postpilot)
+    # also back upped here: S:\AG\AG-Spielsucht2\Daten\VPPG_Daten\Adlershof\Daten\PDT\POSTPILOT\sample
+    setwd('C:/Users/genaucka/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/pilot')
+    load('all_subjects_POSTPILOT.RData')
+    pp_incl     = all_subjects_POSTPILOT
+    pp_excl     = dfs[[2]]$VPPG[!dfs[[2]]$VPPG %in% pp_incl]
+    pp_excl_PG  = dfs[[2]]$VPPG[!dfs[[2]]$VPPG[dfs[[2]]$HCPG == 'PG'] %in% pp_incl]
+    pp_excl_HC  = dfs[[2]]$VPPG[!dfs[[2]]$VPPG[dfs[[2]]$HCPG == 'HC'] %in% pp_incl]
+    message('I am cutting Postpilot sample to improve matching...')
+    cur_text = paste("In study", which_studies[2],"these subjects were dropped to improve matching:\n",
+                     "HC:",paste(pp_excl_HC,collapse = " "),"\n",
+                     "PG:",paste(pp_excl_PG,collapse = " "))
+    message(cur_text)
     
-    # reporting who was dropped due to matching
-    for (ii in 1:length(which_studies)) {
-      cur_text = paste("In study", which_studies[ii],"these subjects were dropped to improve matching:\n",
-                       "HC:",paste(dropped_subs_matching[[ii]]$dropped_HC_matching,collapse = " "),"\n",
-                       "PG:",paste(dropped_subs_matching[[ii]]$dropped_PG_matching,collapse = " "))
-      warning(cur_text)
-    }
+    # # elimate further, in the MRI study at least, to improve matching [MRI: study 1]
+    # message('I am cutting MRI sample further to improve matching on...')
+    # message(paste(cur_names_dom_narrowed,collapse = ' '))
+    # elim_res                                       = agk.domatch.elim(which_studies[1],dfs[1],cur_groups[1],cur_names_dom_narrowed)
+    # dfs[[1]]                                       = elim_res$dfs[[1]]
+    # dropped_subs_matching[[1]]$dropped_HC_matching = c(dropped_subs_matching[[1]]$dropped_HC_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_HC_matching)
+    # dropped_subs_matching[[1]]$dropped_PG_matching = c(dropped_subs_matching[[1]]$dropped_PG_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_PG_matching)
+    # 
+    
+    # # reporting who was dropped due to matching
+    # for (ii in 1:length(which_studies)) {
+    #   cur_text = paste("In study", which_studies[ii],"these subjects were dropped to improve matching:\n",
+    #                    "HC:",paste(dropped_subs_matching[[ii]]$dropped_HC_matching,collapse = " "),"\n",
+    #                    "PG:",paste(dropped_subs_matching[[ii]]$dropped_PG_matching,collapse = " "))
+    #   warning(cur_text)
+    # }
     
     # align data_pdt and dat_match after do matching
     warning(paste0("dat_match and data_pdt subjects are aligned after dropping subjects due to matching.\n",
                    "But dat_match has no interpolation of missing data as was used for printing demography tables."))
-    for (ii in 1:length(which_studies)) {
-      data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
-      data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
-      dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
-      dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
-    }
+    # for (ii in 1:length(which_studies)) {
+    #   data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
+    #   data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
+    #   dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
+    #   dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
+    # }
+    
+    # further drops for MRI study
+    dfs[[1]]  = dfs[[1]][dfs[[1]]$VPPG %in% mri_incl,]
+    data_pdt  = data_pdt[!data_pdt$subject %in% mri_excl,]
+    dat_match = dat_match[!dat_match$VPPG %in% mri_excl,]
+    
+    # further drops for PP study
+    dfs[[2]]  = dfs[[2]][dfs[[2]]$VPPG %in% pp_incl,]
+    data_pdt  = data_pdt[!data_pdt$subject %in% pp_excl,]
+    dat_match = dat_match[!dat_match$VPPG %in% pp_excl,]
   }
  
   
@@ -764,7 +805,7 @@ if (import_existing_imp == 0) {
     cur_MRI$group  = ifelse(cur_MRI$group == "PG",1,0)
     # add the covariates info
     dat_match$edu_years_sum = dat_match$edu_years + dat_match$edu_years_voca 
-    cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years_sum','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
+    cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
     write.table(file="info_mri_selection_30_30.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
     
     setwd(path_dat)
@@ -836,6 +877,9 @@ if (import_existing_imp == 0) {
     load("data_pdt.rda")
   }
   
+  # recode MRI
+  data_pdt$Cohort = agk.recode(data_pdt$Cohort,'MRT','MRI')
+  
   # get an MRI Sjinfo for SPM
   cur_MRI        = aggregate(data_pdt[c("HCPG","Cohort")],by=list(data_pdt$subject),FUN=first)
   cur_MRI        = subset(cur_MRI, Cohort == "MRI")
@@ -845,7 +889,7 @@ if (import_existing_imp == 0) {
   # add the covariates info
   dat_match$edu_years_sum = dat_match$edu_years + dat_match$edu_years_voca 
   if (write_info_mri_selection) {
-    cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years_sum','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
+    cur_MRI                 = merge(cur_MRI,dat_match[c('VPPG','edu_years','smoking_ftdt')],by.x = c('subject'),by.y = c('VPPG'))
     write.table(file="info_mri_selection_30_30.csv",x = cur_MRI,sep = "\t",row.names = F,quote = F)
     
     setwd(path_dat_GD)
@@ -992,23 +1036,36 @@ init_done = F
 setwd(path_ana)
 save.image()
 
-# ## save also to release repository [but discard the cr_agg_pp_r_MRI data, and pp data]
-# to_discard = c('zygo_','corr_','eda_','SCR','cozy_')
-# for (dd in 1:length(to_discard)) {
-#   cur_vars_to_disc = grep(to_discard[dd],names(data_pdt))
-#   data_pdt[cur_vars_to_disc] =  NA
-# }
-# cr_agg_pp_r_MRI = NA
-# setwd(path_ghb)
-# # discard all the path information
-# rm(list = ls()[grep('path',ls())])
-# setwd('PIT_GD_bv_release/R/analyses')
-# save.image()
+if (data_release == 'behav' | data_release == 'MRI') {
+  ## save also to release repository [but discard the cr_agg_pp_r_MRI data, and pp data]
+  to_discard = c('zygo_','corr_','eda_','SCR','cozy_')
+  for (dd in 1:length(to_discard)) {
+    cur_vars_to_disc = grep(to_discard[dd],names(data_pdt))
+    data_pdt[cur_vars_to_disc] =  NA
+  }
+  if (data_release != 'MRI') {
+    cr_agg_pp_r_MRI = NA
+  }
+  setwd(path_ghb)
+  # discard all the path information
+  rm(list = ls()[grep('path',ls())])
+  if (data_release == 'behav') {
+    setwd('PIT_GD_bv_release/R/analyses')
+  } else {
+    setwd('PIT_GD_MRI_release/R/analyses')
+  }
+  save.image()
+} else if (data_release == 'none') {
+  # do nothing
+} else {
+  stop('unknown value for data_release')
+}
 
 
 
 
 
+## OLD ========================================================================
 # # some descriptives
 # data_pdt_agg = aggregate(cbind(age,sex,pilot) ~ subject, data = data_pdt,first)
 # describeBy(as.numeric(as.character(data_pdt_agg$age)),group = data_pdt_agg$pilot)

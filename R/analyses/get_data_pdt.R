@@ -11,10 +11,10 @@ missing_people                 = c()
 # get the Behav PDT folders of the MRI subjects
 all_behav_dir_mri = c()
 if (get_MRI_behav_data == 1) {
-  setwd(path_mrt)
+  setwd(path_MRI)
   cur_folders = dir(pattern = "VPPG")
   for (ii in 1:length(cur_folders)) {
-    setwd(path_mrt)
+    setwd(path_MRI)
     setwd(cur_folders[ii])
     setwd("PDT")
     all_behav_dir_mri[ii] = getwd()
@@ -161,6 +161,13 @@ for (ii in 1:total) {
   cur_df$gainxloss     = cur_df$gain_bcp*cur_df$loss_bcp
   cur_df$gainxloss_bcp = cur_df$gainxloss 
   
+  # save abs(loss) if desired
+  if (loss_abs == 1) {
+    cur_df$loss = abs(as.numeric(cur_df$loss)) # work as Tom et al. (2007)
+  } else {
+    stop('abs_loss should ALWAYS be done')
+  }
+  
   # aggregating
   cur_df$gain      = agk.aggregate.data.la.gain.loss.c(cur_df$gain,agg=cur_agg)
   cur_df$loss      = agk.aggregate.data.la.gain.loss.c(cur_df$loss,agg=cur_agg)
@@ -178,11 +185,6 @@ for (ii in 1:total) {
   
   cur_df$ed_abs = ed_neu
   cur_df$ed     = NA
-  
-  # save abs(loss) if desired
-  if (loss_abs == 1) {
-    cur_df$loss = abs(as.numeric(cur_df$loss)) # work as Tom et al. (2007)
-  }
   
   # Risk
   # die Formeln von Minati und Martino sind gleich; allerdings finde ich,
@@ -241,7 +243,7 @@ for (ii in 1:total) {
   cur_sub = all_behav_dir[[ii]]
   cur_sub = strsplit(cur_sub,"/",fixed = T)
   
-  if (sum(cur_sub[[1]] == "MRT") > 0) {
+  if (sum(cur_sub[[1]] == "MRI") > 0) {
     cur_sub = cur_sub[[1]][(length(cur_sub[[1]])-1)]
   } else {
     cur_sub = cur_sub[[1]][length(cur_sub[[1]])]
@@ -258,7 +260,7 @@ for (ii in 1:total) {
   cur_df = data.frame(subject,cur_df, accept_reject)
   
   # get the BOLD extract data
-  is_MRI = as.logical(length(grep(all_behav_dir[ii],pattern = "MRT")))
+  is_MRI = as.logical(length(grep(all_behav_dir[ii],pattern = "MRI")))
   if(get_MRI_extr == 1 & is_MRI & as.logical(length(grep(dir(),pattern = "bold_scores_")))) {
     rm(list=c("tmp"))
     
@@ -356,7 +358,7 @@ data_pdt           = subset(data_pdt_nona, Einschluss == "1")
 exl_subs_nona = unique(data_pdt_nona$subject[which(!data_pdt_nona$subject %in% data_pdt$subject)])
 message = paste('Just excluded these subs according to include/excl variable in TN-Liste:\n',
                 paste(exl_subs_nona,collapse = ' '))
-cat(message)
+message(cat(message))
 # reporting on subjects in data_pdt which are not in TN-Liste
 exl_subs_na = unique(data_pdt_na$subject)
 if (length(exl_subs_na) != 0) {

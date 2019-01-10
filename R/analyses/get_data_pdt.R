@@ -1,6 +1,47 @@
 # message to user
 print("Getting behavioral choice data")
 
+# functions
+get.gamble.parameters = function(cur_df) {
+  # Risk
+  # die Formeln von Minati und Martino sind gleich; allerdings finde ich,
+  if (loss_abs == 1) {
+    cur_df$EV      = 0.5*cur_df$gain + 0.5*cur_df$loss*(-1)
+    cur_df$ratio   = abs(cur_df$gain/cur_df$loss*(-1))
+    cur_df$diff    = cur_df$gain-cur_df$loss*(-1)
+  } else {
+    cur_df$EV      = 0.5*cur_df$gain + 0.5*cur_df$loss
+    cur_df$ratio   = abs(cur_df$gain/cur_df$loss)
+    cur_df$diff    = cur_df$gain-cur_df$loss
+  }
+  
+  if (loss_abs == 1) {
+    cur_df$RiskMin = 0.5*(cur_df$gain-cur_df$EV)^2+0.5*(cur_df$gain-cur_df$EV)^2 # typo??
+    cur_df$RiskAG  = 0.5*(cur_df$gain-cur_df$EV)^2+0.5*(cur_df$loss*(-1)-cur_df$EV)^2
+    cur_df$RiskMar = (0.5*cur_df$gain-0.5*cur_df$loss*(-1))^2
+  } else {
+    cur_df$RiskMin = 0.5*(cur_df$gain-cur_df$EV)^2+0.5*(cur_df$gain-cur_df$EV)^2 # typo??
+    cur_df$RiskAG  = 0.5*(cur_df$gain-cur_df$EV)^2+0.5*(cur_df$loss-cur_df$EV)^2
+    cur_df$RiskMar = 0.5*cur_df$gain-0.5*cur_df$loss^2
+  }
+  
+  # Skew aufbauend auf Formel von Minati
+  cur_df$SkewMin  = 0.5*(cur_df$gain-cur_df$EV)^3+0.5*(cur_df$gain-cur_df$EV)^3
+  
+  # scaling
+  if (use_z == 1) {
+    cur_df$EV_bcp    = cur_df$EV
+    cur_df$gain      = scale(cur_df$gain, center = T, scale = F)
+    cur_df$loss      = scale(cur_df$loss, center = T, scale = F)
+    cur_df$gainxloss = scale(cur_df$gainxloss, center = T, scale = F)
+    cur_df$EV        = scale(cur_df$EV, center = T, scale = F)
+    cur_df$diff      = scale(cur_df$diff, center = T, scale = F)
+    cur_df$ratio     = scale(cur_df$ratio, center = T, scale = F)
+    cur_df$ed_abs    = scale(cur_df$ed_abs, center = T, scale = F)
+  }
+  return(cur_df)
+}
+
 # path
 path_cur_home = getwd()
 
@@ -172,7 +213,8 @@ for (ii in 1:total) {
   # loss must be used as abs(loss)
   # result is automatically absolute values
   # note that if aggregation has taken place; ed is performed on aggr values
-  # here: no aggregation, neither before nor after
+  # here: no aggregation, neither before nor after (for PIT_GD_behav)
+  # for PIT_GD_MRI we need aggregation because we need to do it on the MRI single subject level
   ed_neu = c()
   for (ll in 1:length(cur_df[,1])) {
     ed_neu[ll] = agk_get_ed.c(c(cur_df$gain[ll],abs(cur_df$loss[ll]),0),sp = c(26,13,0),vec = c(2,1,0))
@@ -181,53 +223,27 @@ for (ii in 1:total) {
   cur_df$ed_abs = ed_neu
   cur_df$ed     = NA
   
-  if (cur_agg > 1) {
-    # aggregating
-    cur_df$gain      = agk.aggregate.data.la.gain.loss.c(cur_df$gain,agg=cur_agg)
-    cur_df$loss      = agk.aggregate.data.la.gain.loss.c(cur_df$loss,agg=cur_agg)
-    cur_df$ed_abs    = agk.aggregate.data.la.gain.loss.c(cur_df$ed_abs,agg=cur_agg)
-    cur_df$gainxloss = agk.aggregate.data.la.gain.loss.c(cur_df$gainxloss,agg=cur_agg)
-  }
-  
-  # Risk
-  # die Formeln von Minati und Martino sind gleich; allerdings finde ich,
-  # man muesste den Term noch durch die Anzahl an Optionen teilen
-  # also durch 2
-  if (loss_abs == 1) {
-    cur_df$EV      = 0.5*cur_df$gain + 0.5*cur_df$loss*(-1)
-    cur_df$ratio   = abs(cur_df$gain/cur_df$loss*(-1))
-    cur_df$diff    = cur_df$gain-cur_df$loss*(-1)
-  } else {
-    cur_df$EV      = 0.5*cur_df$gain + 0.5*cur_df$loss
-    cur_df$ratio   = abs(cur_df$gain/cur_df$loss)
-    cur_df$diff    = cur_df$gain-cur_df$loss
-  }
-  
-  if (loss_abs == 1) {
-    cur_df$RiskMin = 0.5*(cur_df$gain-cur_df$EV)^2+0.5*(cur_df$gain-cur_df$EV)^2 # typo??
-    cur_df$RiskAG  = 0.5*(cur_df$gain-cur_df$EV)^2+0.5*(cur_df$loss*(-1)-cur_df$EV)^2
-    cur_df$RiskMar = (0.5*cur_df$gain-0.5*cur_df$loss*(-1))^2
-  } else {
-    cur_df$RiskMin = 0.5*(cur_df$gain-cur_df$EV)^2+0.5*(cur_df$gain-cur_df$EV)^2 # typo??
-    cur_df$RiskAG  = 0.5*(cur_df$gain-cur_df$EV)^2+0.5*(cur_df$loss-cur_df$EV)^2
-    cur_df$RiskMar = 0.5*cur_df$gain-0.5*cur_df$loss^2
-  }
+  cur_df$gain_unagg      = cur_df$gain
+  cur_df$loss_unagg      = cur_df$loss
+  cur_df$ed_abs_unagg    = cur_df$ed_abs
+  cur_df$gainxloss_unagg = cur_df$gainxloss
   
   
-  # Skew aufbauend auf Formel von Minati
-  cur_df$SkewMin  = 0.5*(cur_df$gain-cur_df$EV)^3+0.5*(cur_df$gain-cur_df$EV)^3
+  # gamble params based on unaggregated gain, loss, ed
+  cur_df_unagg = get.gamble.parameters(cur_df)
+  names(cur_df_unagg) = paste0(names(cur_df_unagg),'_unagg')
   
-  # scaling
-  if (use_z == 1) {
-    cur_df$EV_bcp    = cur_df$EV
-    cur_df$gain      = scale(cur_df$gain, center = T, scale = F)
-    cur_df$loss      = scale(cur_df$loss, center = T, scale = F)
-    cur_df$gainxloss = scale(cur_df$gainxloss, center = T, scale = F)
-    cur_df$EV        = scale(cur_df$EV, center = T, scale = F)
-    cur_df$diff      = scale(cur_df$diff, center = T, scale = F)
-    cur_df$ratio     = scale(cur_df$ratio, center = T, scale = F)
-    cur_df$ed_abs    = scale(cur_df$ed_abs, center = T, scale = F)
-  }
+  # aggregating
+  cur_df$gain      = agk.aggregate.data.la.gain.loss.c(cur_df$gain,agg=cur_agg)
+  cur_df$loss      = agk.aggregate.data.la.gain.loss.c(cur_df$loss,agg=cur_agg)
+  cur_df$ed_abs    = agk.aggregate.data.la.gain.loss.c(cur_df$ed_abs,agg=cur_agg)
+  cur_df$gainxloss = agk.aggregate.data.la.gain.loss.c(cur_df$gainxloss,agg=cur_agg)
+  
+  # gamble params based on aggregated gain, loss, ed
+  cur_df = get.gamble.parameters(cur_df)
+  
+  # merging unaggr and aggr cur_df
+  cur_df = cbind(cur_df,cur_df_unagg)
   
   # the choice variable
   accept_reject = cur_df$choice

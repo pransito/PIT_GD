@@ -60,7 +60,7 @@ agk.load.ifnot.install('compiler')
 #agk.load.ifnot.install('optmatch')
 #agk.load.ifnot.install('WhatIf')
 #agk.load.ifnot.install('Matching')
-#agk.load.ifnot.install('OptimalCutpoints')
+agk.load.ifnot.install('OptimalCutpoints')
 
 # what to run =================================================================
 if (!init_run) {
@@ -291,8 +291,8 @@ if (outer_cv_c_model) {
 # REPORTING: PREPARATION =====================================================
 if (do_report) {
   cur_home = getwd()
-  setwd(root_wd)
-  setwd('01_classification/results/')
+  setwd(base_gd)
+  setwd('02_Library/02_Results/PIT_GD/R/analyses/01_classification/results')
   setwd(as.character(runs))
   if (pred_grp) {
     all_res_files = dir(pattern = paste0(which_study,'_predGrp1'))
@@ -706,6 +706,35 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
   p = p + xlab("regression weights")
   print(p)
   
+  # prep function for Haufe transformation
+  agk.haufe.transformation = function(X,win_mod_coefs) {
+    # function to perform the Haus tranformation from linear classifier to intepretable univariate group differences
+    cov_X = cov(X)
+    
+    # using all weight vectors
+    all_ws              = win_mod_coefs
+    all_ws$X.Intercept. = NULL
+    all_ws              = as.data.frame(lapply(all_ws,as.numeric))
+    stopifnot(colnames(cov_X) == names(all_ws))
+    
+    # get the importance at every channel (predictor)
+    all_As = cov_X %*% as.matrix(as.numeric(all_ws[1,]))
+    for (aa in 2:length(all_ws[,1])) {
+      all_As = cbind(all_As,cov_X %*% as.matrix(as.numeric(all_ws[aa,])))
+    }
+    
+    # get the importance mean, and ci bootstrapped (quantile!)
+    all_As      = data.frame(t(all_As))
+    all_As      = lapply(all_As,agk.mean.quantile.c,lower = 0.025,upper=0.975)
+    all_As      = data.frame(all_As)
+    all_As      = t(all_As)
+    all_As      = as.data.frame(all_As)
+    all_As$coef = row.names(all_As)
+    
+    return(all_As)
+  }
+  
+  
   if (which_study == 'MRI') {
 
     # short names and grouping
@@ -745,27 +774,9 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     X$edu_years = as.numeric(agk.recode.c(row.names(X),dat_match$VPPG,dat_match$edu_years))
     X$HCPG      = NULL
     X           = agk.scale.ifpossible(X)
-    cov_X       = cov(X)
-    
-    # using all weight vectors
-    all_ws              = win_mod_coefs
-    all_ws$X.Intercept. = NULL
-    all_ws              = as.data.frame(lapply(all_ws,as.numeric))
-    stopifnot(colnames(cov_X) == names(all_ws))
-    
-    # get the importance at every channel (predictor)
-    all_As = cov_X %*% as.matrix(as.numeric(all_ws[1,]))
-    for (aa in 2:length(all_ws[,1])) {
-      all_As = cbind(all_As,cov_X %*% as.matrix(as.numeric(all_ws[aa,])))
-    }
-    
-    # get the importance mean, and ci bootstrapped (quantile!)
-    all_As      = data.frame(t(all_As))
-    all_As      = lapply(all_As,agk.mean.quantile.c,lower = 0.025,upper=0.975)
-    all_As      = data.frame(all_As)
-    all_As      = t(all_As)
-    all_As      = as.data.frame(all_As)
-    all_As$coef = row.names(all_As)
+  
+    # core Haufe transformation
+    all_As = agk.haufe.transformation(X,win_mod_coefs)
     
     # shorter names and grouping
     all_As = agk.mri.shorter.and.grouped.names(all_As)
@@ -786,7 +797,33 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     all_As_ordered = all_As[order(abs(all_As$mean),decreasing = T),]
     message('The strongest betas are:')
     print(all_As_ordered[1:4,])
+  }
+  
+  if (which_study == 'POSTPILOT_HCPG') {
+    # display the Haufe transformed A
+    X              = featmod_coefs[[winning_mod]]
+    X$smoking_ftdt = as.numeric(agk.recode.c(row.names(X),dat_match$VPPG,dat_match$smoking_ftdt))
+    X$HCPG         = NULL
+    X              = agk.scale.ifpossible(X)
     
+    # core Haufe transformation
+    all_As = agk.haufe.transformation(X,win_mod_coefs)
+    
+    # plot
+    p = ggplot(data = all_As, aes(coef,mean))
+    p = p+geom_bar(stat="identity")
+    p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
+                          width = 0) + ylab("mean (95% CI over CV rounds)\n\n\n")
+    
+    p <- p + ggtitle("Estimated predictor importance with 95% quantiles") + theme_bw()
+    p = p + theme(text = element_text(size=15),
+                  axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
+    print(p)
+    
+    # the top betas
+    all_As_ordered = all_As[order(abs(all_As$mean),decreasing = T),]
+    message('The strongest betas are:')
+    print(all_As_ordered[1:4,])
   }
 }
 

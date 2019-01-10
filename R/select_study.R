@@ -16,15 +16,20 @@ if (FOREIGN_RUN) {
   load('.RData')
 }
 
+# get the paths
+res      = agk.get.working.location()
+base_gd  = res$base_gd
+path_ghb = res$path_ghb
+
 # get the original data_pdt from data_import.R
 data_pdt     = data_pdt_bcp
 data_pdt_inv = data_pdt
 
 ## PARAMETER SETTINGS =========================================================
 # which study to look at (Cohorts)? ===========================================
-which_study = "MRI"
+#which_study = "MRI"
 #which_study = "MRI_and_POSTPILOT" # lumping those together (for KFG prediction e.g.)
-#which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
+which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
 #which_study = "TEST" # when K.Brehm used POSTPILOT and simulated facial expression (8888) or not (7777)
 #which_study = "Prestudy" # HC groups before core behav study; for image adequacy (PhysioPilot)
 #which_study = "sanity"

@@ -18,10 +18,10 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 # none, MRI, behav
 data_release             = 'none'
 # use last exisiting import
-import_existing_imp      = 0
+import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
-import_from_scratch      = 1
+import_from_scratch      = 0
 # do any matching or non at all?
 do_matching_MRI          = 1
 # do any matching or non at all?
@@ -118,25 +118,34 @@ behav_exempt = c(behav_exempt,'baseNAPS0008', 'baseNAPS0013', 'baseNAPS0014',
 subs_excl_hand  = c()
 
 ## DETERMINE THE WORKING LOCATION =============================================
-# on which computer are we working right now?
-user    = paste0(as.character(Sys.info()["login"]),"/")
-root_wd = rstudioapi::getSourceEditorContext()$path
-
-# get the github folder
-res      = regexpr('GitHub',root_wd)
-path_ghb = substr(root_wd,1,res[1]+attributes(res)$'match.length'-1)
-
-# get the google drive folder
-e_true = length(grep(pattern = 'E:',root_wd,fixed=T)) > 0
-c_true = length(grep(pattern = 'C:',root_wd,fixed=T)) > 0
-
-if (e_true & !c_true) {
-  base_gd = "E:/Google Drive"
-} else if (c_true & !e_true) {
-  base_gd = paste("C:/Users/",user,"Google Drive",sep="")
-} else {
-  stop('Unknown case for working location.')
+agk.get.working.location = function() {
+  # on which computer are we working right now?
+  user    = paste0(as.character(Sys.info()["login"]),"/")
+  root_wd = rstudioapi::getSourceEditorContext()$path
+  
+  # get the github folder
+  res      = regexpr('GitHub',root_wd)
+  path_ghb = substr(root_wd,1,res[1]+attributes(res)$'match.length'-1)
+  
+  # get the google drive folder
+  e_true = length(grep(pattern = 'E:',root_wd,fixed=T)) > 0
+  c_true = length(grep(pattern = 'C:',root_wd,fixed=T)) > 0
+  
+  if (e_true & !c_true) {
+    base_gd = "E:/Google Drive"
+  } else if (c_true & !e_true) {
+    base_gd = paste("C:/Users/",user,"Google Drive",sep="")
+  } else {
+    stop('Unknown case for working location.')
+  }
+  
+  return(list(path_ghb = path_ghb, base_gd = base_gd))
+  
 }
+
+res      = agk.get.working.location()
+base_gd  = res$base_gd
+path_ghb = res$path_ghb
 
 ## PATHS ======================================================================
 # paths to VPPG exchange
@@ -1007,9 +1016,9 @@ data_pdt$Cohort     = agk.recode(data_pdt$Cohort,c('MRT'),c('MRI'))
 
 # get the MRI features
 # loading
-setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
+setwd(file.path(path_ghb,'PIT_GD/R/analyses/01_classification'))
 source("get_phys_and_rating_params_MRI.R")
-setwd(paste0(base_lib,'/Library/01_Projects/PIT_GD/R/analyses/01_classification'))
+setwd(file.path(path_ghb,'PIT_GD/R/analyses/01_classification'))
 
 # reducing
 if (fmri_extr == 'ngm' | fmri_extr == 'glc') {
@@ -1071,9 +1080,6 @@ data_pdt$cozy_valence = data_pdt$zygo_auc_stim - data_pdt$corr_auc_stim
 init_done = F
 
 ## SAVE THE WORKSPACE FOR CLASSIFICATION AND OTHER ANALYSES ===================
-setwd(path_ana)
-save.image()
-
 # for data release the aggregation needs to be clear
 agk.select.aggregation = function(data_pdt,data_release) {
   
@@ -1093,6 +1099,11 @@ agk.select.aggregation = function(data_pdt,data_release) {
   return(data_pdt)
 }
 
+# saving generally without selecting aggregated or not aggregated
+setwd(path_ana)
+save.image()
+
+# selecting aggregation according to release
 data_pdt = agk.select.aggregation (data_pdt,data_release)
 
 if (data_release == 'behav' | data_release == 'MRI') {

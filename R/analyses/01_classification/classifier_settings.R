@@ -8,8 +8,8 @@
 
 ## WHAT TO RUN ================================================================
 # just the behavioral parameter sets
-outer_cv_noaddfeat      = 1 # with outer CV, getting generalization error, Ha
-noout_cv_noaddfeat      = 1 # no outer CV, get complete model on whole sample
+outer_cv_noaddfeat      = 0 # with outer CV, getting generalization error, Ha
+noout_cv_noaddfeat      = 0 # no outer CV, get complete model on whole sample
 
 # # behavior plus peripheral-physiological stuff
 # outer_cv_wiaddfeat      = 0 # adding physio, Ha
@@ -20,7 +20,7 @@ outer_cv_addfeaton      = 0 # Ha only, i.e. physio/MRI
 noout_cv_addfeaton      = 0 # to get the complete model 
 
 # control model
-outer_cv_c_model        = 1 # control model/null-model for classification; predict with covariate
+outer_cv_c_model        = 0 # control model/null-model for classification; predict with covariate
 # not needed for MRI case (p-value comp in dfferent script, using random classification)
 
 # what to report
@@ -67,7 +67,7 @@ if (which_study == 'MRI') {
 
 # no other features, only behavior
 # master add cue reactivity: peripheral physiology or MRI
-if (outer_cv_noaddfeat == T | noout_cv_noaddfeat == T) {
+if (outer_cv_noaddfeat == T | noout_cv_noaddfeat == T | do_report_no_added_feat == T) {
   add_cr_pp_ma = F
 } else {
   add_cr_pp_ma = T

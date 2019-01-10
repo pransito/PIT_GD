@@ -104,7 +104,7 @@ print(mRat)
 
 # acceptance rate based on laec_group model (MRI study) #######################
 # general acceptance rate difference between group
-laecg_effects = summary(modlae_cg)
+#laecg_effects = summary(modlae_cg)
 laecg_effects = summary(modla_0g)
 
 HC_acc   = logistic(laecg_effects$coefficients['(Intercept)',1])

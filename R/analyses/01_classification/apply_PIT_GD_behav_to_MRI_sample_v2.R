@@ -20,6 +20,10 @@ get.truth.2 = function() {
   sample(c(rep('HC',2),rep('PG',2)))
 }
 
+get.truth.1 = function() {
+  sample(c('HC','PG'),size = 1)
+}
+
 # set runs of random classification
 runs0 = 10000
 
@@ -43,6 +47,16 @@ for (ii in 1:runs0) {
     inner_resps  = c(inner_resps,as.numeric(randn(1,6)*10))
   }
   
+  # # add 4
+  # inner_truths = c(inner_truths,as.character(get.truth.2()))
+  # # get response
+  # inner_resps  = c(inner_resps,as.numeric(randn(1,4)*10))
+  # 
+  # # add 1
+  # inner_truths = c(inner_truths,as.character(get.truth.1()))
+  # # get response
+  # inner_resps  = c(inner_resps,as.numeric(randn(1,1)*10))
+  
   # cur_auc
   cur_roc         = roc(inner_truths,inner_resps)
   all_aucs[ii]    = cur_roc$auc
@@ -61,13 +75,14 @@ for (ii in 1:runs0) {
 
 ## use a consensus of ALL models from PDT behav ===============================
 setwd(root_wd)
-setwd('01_classification/results/1010/')
+setwd('01_classification/results/1008/')
 load('POSTPILOT_HCPG_predGrp1_rounds_noo_noaddfeat.RData')
 
-# get the standardization
-# THIS CODE JUST FOR DOCUMENTATION; HAS BEEN DONE BEFORE AND RESULT SAVED
+# #get the standardization
+# #THIS CODE JUST FOR DOCUMENTATION; HAS BEEN DONE BEFORE AND RESULT SAVED
 # # first load postpilot data [prep for publication a new workspace]
-# setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1010')
+# setwd('C:/Users/genaucka/Google Drive/Library/01_Projects/PIT_GD/R/analyses/01_classification/results/1008')
+# win_mods = cur_mod_sel_nooCV
 # win_mods = agk.recode(win_mods,c('acc'),c('ac'))
 # for (mm in 1:length(win_mods)) {
 #   pp_b_dat = featmod_coefs[[win_mods[mm]]]
@@ -186,3 +201,21 @@ p = p + theme(axis.text=element_text(size=14, face = "bold"),
               axis.title=element_text(size=20,face="bold"))
 p = p + coord_cartesian(xlim = c(0.4, 0.8)) 
 print(p)
+
+
+## EXTRA NEW STUFF
+## do a paired test ===============================================================
+# shorten to see if we can get it with less samples
+Ha_auc_short = Ha_auc[1:17] 
+improvement = c()
+ct          = 0
+for (cur_auc in all_aucs){
+  ct = ct + 1
+  improvement[ct] = sample(Ha_auc_short,size = 1) - cur_auc
+}
+agk.density_p(improvement,0)
+
+## take mean of single predictions ================================================
+message('p-value for mean(AUC):')
+message(' ')
+message(1-agk.density_p.c(all_aucs,mean(Ha_auc)))

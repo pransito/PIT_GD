@@ -7,27 +7,27 @@ agk.perform.matching.splitdfs = function(dat_match,cur_study = NULL) {
                 'audit','BDI','SOGS','KFG','BIS','GBQ_persi','GBQ_illus','BIG')        
   
   # splitting
-  dat_match_MRI              = subset(dat_match,Cohort == "MRT")
+  dat_match_MRI              = subset(dat_match,Cohort == "MRI")
   dat_match_POSTPILOT        = subset(dat_match,(Cohort == "PGPilot" | Cohort == "POSTPILOT"))
-  dat_match_PP_MRI           = subset(dat_match,(Cohort == "PGPilot" | Cohort == "POSTPILOT" | Cohort == "MRT"))
+  dat_match_PP_MRI           = subset(dat_match,(Cohort == "PGPilot" | Cohort == "POSTPILOT" | Cohort == "MRI"))
   dat_match_PP_MRI$study     = NA
   dat_match_PP_MRI$study[dat_match_PP_MRI$Cohort == "PGPilot"] = "POSTPILOT"
   dat_match_PP_MRI$study[dat_match_PP_MRI$Cohort == "POSTPILOT"] = "POSTPILOT"
-  dat_match_PP_MRI$study[dat_match_PP_MRI$Cohort == "MRT"] = "MRT"
+  dat_match_PP_MRI$study[dat_match_PP_MRI$Cohort == "MRI"] = "MRI"
   dat_match_PP_MRI$study = as.factor(dat_match_PP_MRI$study)
   
   # packing
   dfs          = list(dat_match_MRI,dat_match_POSTPILOT,dat_match_POSTPILOT,dat_match_PP_MRI)
   dfs[[3]]     = subset(dfs[[3]],HCPG == "PG") # for gender study only use PG subjects
   cur_groups   = c("HCPG","HCPG","dem_gender","study")
-  cur_matching = c("MRT","POSTPILOT","POSTPILOT_GENDER","PP_MRI")
+  cur_matching = c("MRI","POSTPILOT","POSTPILOT_GENDER","PP_MRI")
   
   if (!is.null(cur_study)) {
     # only if current study is given
     # select only the Cohort of interest
     if (cur_study == 'POSTPILOT') {
       cur_ind =2
-    } else if (cur_study == 'MRT') {
+    } else if (cur_study == 'MRI') {
       cur_ind = 1
     } else {
       stop(paste('rec_matching_test not implemented for',cur_study,'study.'))
@@ -218,8 +218,8 @@ agk.domatch = function(which_studies,desired_n,dfs,cur_groups,cur_names_dom) {
     cur_df_trnsf[cur_names_dom] = as.data.frame(lapply(cur_df_trnsf[cur_names_dom],FUN=as.numeric))
     cur_df_trnsf[cur_names_dom] = as.data.frame(lapply(cur_df_trnsf[cur_names_dom],FUN=scale))
     
-    # weight handedness in the MRT study
-    if (which_studies[ii] =='MRT') {
+    # weight handedness in the MRI study
+    if (which_studies[ii] =='MRI') {
       cur_df_trnsf$handedness       = cur_df_trnsf$handedness * 2
       cur_df_trnsf$Age              = cur_df_trnsf$Age * 4
       cur_df_trnsf$edu_hollingshead = cur_df_trnsf$edu_hollingshead * 1.5

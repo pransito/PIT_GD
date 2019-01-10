@@ -17,12 +17,14 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 # none, MRI, behav
 data_release             = 'MRI'
 # use last exisiting import
-import_existing_imp      = 0
+import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
 import_from_scratch      = 0
 # do any matching or non at all?
-do_matching              = 1
+do_matching_MRI          = 1
+# do any matching or non at all?
+do_matching_PP           = 1
 # save the data_pdt? only off for debug
 do_save                  = 1
 # you may tunr off the export of the info_mri selection for debugging;
@@ -71,7 +73,7 @@ get_LAcl_for_MRI         = 0
 get_LAch_for_MRI         = 0
 # get MRI BOLD extracts (to be done in matlab and moved to google drive)
 get_MRI_extr             = 0
-# how much aggregate (3 is from 12by12 to 4by4 because 12/3 == 4)
+# how much aggregate (3 is from 12by12 to 4by4 because 12/3 == 4; 1 would be no aggregation)
 cur_agg                  = 3
 # matching criterion p-value (for matching experimental groups)
 m_crit                   = 0.12
@@ -609,6 +611,9 @@ if (import_existing_imp == 0) {
     dat_match      = dat_match[,-cur_vars_drop] 
   }
   
+  # recode MRI
+  dat_match$Cohort = agk.recode(dat_match$Cohort,'MRT','MRI')
+  
   ## END OF GETTING MATCHING TABLES
   
   ## PERFORM MATCHING TESTS ===================================================
@@ -640,7 +645,11 @@ if (import_existing_imp == 0) {
   # interpolating using mean per group
   dfs = agk.interpolating.dat_match(dfs,cur_groups,cur_names,cur_gr_levs)
   
-  if (do_matching) {
+  # get complete (unmatched MRI sample)
+  dat_match_MRIum = subset(dat_match, Cohort == 'MRI')
+  data_pdt_MRIum  = subset(data_pdt, cohort == 'MRI')
+  
+  if (do_matching_MRI) {
     # do matching: find best matching subject for each subject [mainly for Postpilot because MRI set to c(32,32)]
     matching_res          = agk.domatch(which_studies,desired_n,dfs,cur_groups,cur_names_dom)
     dfs                   = matching_res$dfs
@@ -659,7 +668,13 @@ if (import_existing_imp == 0) {
                      "HC:",paste(mri_excl_HC,collapse = " "),"\n",
                      "PG:",paste(mri_excl_PG,collapse = " "))
     message(cur_text)
-    
+  }
+  
+  # get complete (unmatched MRI sample)
+  dat_match_PPum = subset(dat_match,(Cohort == "PGPilot" | Cohort == "POSTPILOT"))
+  data_pdt_PPum  = subset(data_pdt,(cohort == "PGPilot" | cohort == "POSTPILOT"))
+  
+  if (do_matching_PP) {
     # get the matching that worked from autumn 2018 (postpilot)
     # also back upped here: S:\AG\AG-Spielsucht2\Daten\VPPG_Daten\Adlershof\Daten\PDT\POSTPILOT\sample
     setwd('C:/Users/genaucka/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/pilot')
@@ -673,45 +688,49 @@ if (import_existing_imp == 0) {
                      "HC:",paste(pp_excl_HC,collapse = " "),"\n",
                      "PG:",paste(pp_excl_PG,collapse = " "))
     message(cur_text)
-    
-    # # elimate further, in the MRI study at least, to improve matching [MRI: study 1]
-    # message('I am cutting MRI sample further to improve matching on...')
-    # message(paste(cur_names_dom_narrowed,collapse = ' '))
-    # elim_res                                       = agk.domatch.elim(which_studies[1],dfs[1],cur_groups[1],cur_names_dom_narrowed)
-    # dfs[[1]]                                       = elim_res$dfs[[1]]
-    # dropped_subs_matching[[1]]$dropped_HC_matching = c(dropped_subs_matching[[1]]$dropped_HC_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_HC_matching)
-    # dropped_subs_matching[[1]]$dropped_PG_matching = c(dropped_subs_matching[[1]]$dropped_PG_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_PG_matching)
-    # 
-    
-    # # reporting who was dropped due to matching
-    # for (ii in 1:length(which_studies)) {
-    #   cur_text = paste("In study", which_studies[ii],"these subjects were dropped to improve matching:\n",
-    #                    "HC:",paste(dropped_subs_matching[[ii]]$dropped_HC_matching,collapse = " "),"\n",
-    #                    "PG:",paste(dropped_subs_matching[[ii]]$dropped_PG_matching,collapse = " "))
-    #   warning(cur_text)
-    # }
-    
-    # align data_pdt and dat_match after do matching
-    warning(paste0("dat_match and data_pdt subjects are aligned after dropping subjects due to matching.\n",
-                   "But dat_match has no interpolation of missing data as was used for printing demography tables."))
-    # for (ii in 1:length(which_studies)) {
-    #   data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
-    #   data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
-    #   dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
-    #   dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
-    # }
-    
+  }
+  
+  # # elimate further, in the MRI study at least, to improve matching [MRI: study 1]
+  # message('I am cutting MRI sample further to improve matching on...')
+  # message(paste(cur_names_dom_narrowed,collapse = ' '))
+  # elim_res                                       = agk.domatch.elim(which_studies[1],dfs[1],cur_groups[1],cur_names_dom_narrowed)
+  # dfs[[1]]                                       = elim_res$dfs[[1]]
+  # dropped_subs_matching[[1]]$dropped_HC_matching = c(dropped_subs_matching[[1]]$dropped_HC_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_HC_matching)
+  # dropped_subs_matching[[1]]$dropped_PG_matching = c(dropped_subs_matching[[1]]$dropped_PG_matching,elim_res$dropped_HCs_PGs[[1]]$dropped_PG_matching)
+  # 
+  
+  # # reporting who was dropped due to matching
+  # for (ii in 1:length(which_studies)) {
+  #   cur_text = paste("In study", which_studies[ii],"these subjects were dropped to improve matching:\n",
+  #                    "HC:",paste(dropped_subs_matching[[ii]]$dropped_HC_matching,collapse = " "),"\n",
+  #                    "PG:",paste(dropped_subs_matching[[ii]]$dropped_PG_matching,collapse = " "))
+  #   warning(cur_text)
+  # }
+  
+  # align data_pdt and dat_match after do matching
+  warning(paste0("dat_match and data_pdt subjects are aligned after dropping subjects due to matching.\n",
+                 "But dat_match has no interpolation of missing data as was used for printing demography tables."))
+  # for (ii in 1:length(which_studies)) {
+  #   data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
+  #   data_pdt  = data_pdt[!data_pdt$subject %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
+  #   dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_HC_matching,]
+  #   dat_match = dat_match[!dat_match$VPPG %in% dropped_subs_matching[[ii]]$dropped_PG_matching,]
+  # }
+  
+  if (do_matching_MRI) {
     # further drops for MRI study
     dfs[[1]]  = dfs[[1]][dfs[[1]]$VPPG %in% mri_incl,]
     data_pdt  = data_pdt[!data_pdt$subject %in% mri_excl,]
     dat_match = dat_match[!dat_match$VPPG %in% mri_excl,]
-    
+  }
+  
+  if (do_matching_PP) {
     # further drops for PP study
     dfs[[2]]  = dfs[[2]][dfs[[2]]$VPPG %in% pp_incl,]
     data_pdt  = data_pdt[!data_pdt$subject %in% pp_excl,]
     dat_match = dat_match[!dat_match$VPPG %in% pp_excl,]
   }
- 
+  
   
   # MRI cohort: drop due to Age, edu years, lefthandedness
   # dat_match_MRI     = subset(dat_match,Cohort == 'MRI')
@@ -1052,6 +1071,8 @@ if (data_release == 'behav' | data_release == 'MRI') {
   if (data_release == 'behav') {
     setwd('PIT_GD_bv_release/R/analyses')
   } else {
+    ## deleting some more:
+    #rm(list = c('dat_match_MRIum','data_pdt_MRIum','data_pdt_PPum','data_pdt_PPum'))
     setwd('PIT_GD_MRI_release/R/analyses')
   }
   save.image()

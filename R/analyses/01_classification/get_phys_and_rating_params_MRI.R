@@ -6,9 +6,9 @@
 # getting MRI ss and gppi extracts per subject ================================
 if (fmri_extr == 'ngm') {
   setwd(path_mep)
-  cr_agg_pp_mep = read.table('ssgPPI_extr.csv',header = T,sep='\t')
+  cr_agg_pp_mep = read.table('ssgPPI_extr_ngm.csv',header = T,sep='\t')
   setwd(path_mes)
-  cr_agg_pp_mes = read.table('ss_extr.csv',header = T,sep='\t')
+  cr_agg_pp_mes = read.table('ss_extr_ngm.csv',header = T,sep='\t')
   cr_agg_pp     = merge(cr_agg_pp_mes,cr_agg_pp_mep,by='subject')
 } else if (fmri_extr == 'val') {
   setwd(path_mep)

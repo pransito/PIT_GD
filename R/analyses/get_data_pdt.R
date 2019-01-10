@@ -168,16 +168,11 @@ for (ii in 1:total) {
     stop('abs_loss should ALWAYS be done')
   }
   
-  # aggregating
-  cur_df$gain      = agk.aggregate.data.la.gain.loss.c(cur_df$gain,agg=cur_agg)
-  cur_df$loss      = agk.aggregate.data.la.gain.loss.c(cur_df$loss,agg=cur_agg)
-  cur_df$gainxloss = agk.aggregate.data.la.gain.loss.c(cur_df$gainxloss,agg=cur_agg)
-  
   # euclidean distance
   # loss must be used as abs(loss)
   # result is automatically absolute values
   # note that if aggregation has taken place; ed is performed on aggr values
-  # as it should be
+  # here: no aggregation, neither before nor after
   ed_neu = c()
   for (ll in 1:length(cur_df[,1])) {
     ed_neu[ll] = agk_get_ed.c(c(cur_df$gain[ll],abs(cur_df$loss[ll]),0),sp = c(26,13,0),vec = c(2,1,0))
@@ -185,6 +180,14 @@ for (ii in 1:total) {
   
   cur_df$ed_abs = ed_neu
   cur_df$ed     = NA
+  
+  if (cur_agg > 1) {
+    # aggregating
+    cur_df$gain      = agk.aggregate.data.la.gain.loss.c(cur_df$gain,agg=cur_agg)
+    cur_df$loss      = agk.aggregate.data.la.gain.loss.c(cur_df$loss,agg=cur_agg)
+    cur_df$ed_abs    = agk.aggregate.data.la.gain.loss.c(cur_df$ed_abs,agg=cur_agg)
+    cur_df$gainxloss = agk.aggregate.data.la.gain.loss.c(cur_df$gainxloss,agg=cur_agg)
+  }
   
   # Risk
   # die Formeln von Minati und Martino sind gleich; allerdings finde ich,

@@ -33,7 +33,7 @@ do_report_feat_only       = 0
 # runs also will be the name of the results folder
 # folder is described here:
 # 300 : p. physio pred (PIT GD behav paper)
-# 1010: behav predictions (PIT GD behav paper) (also 1009, repeat after ed fix) 
+# 1010: behav predictions (PIT GD behav paper) (also 1009, repeat after ed fix (correctly aggregated at level 3)) 
 # 1011: behav predictions (PIT GD behav paper) (NO within-z; class; cleaning AIC)
 # 1012: behav predictions (PIT GD behav paper) (NO within-z; class; control)
 
@@ -43,12 +43,17 @@ do_report_feat_only       = 0
 # 1000: fMRI against control model
 # 15: kitchen sink model; all behav in (for paper review)
 # 18: rating only as a "cue reactivity model only"
-# 20: behav; within-z; class; cleaning AIC
 # 21: behav; NO within-z; class; cleaning AIC
 # 22: behav; NO within-z; mse; cleaning AIC
-# 23: behav; NO within-z; auc; cleaning AIC
 # 24: behav; NO within-z; auc; no cleaning; control model instead with smoking
-runs = 1009
+# 20: behav: no cleaning; ed: no aggregation; still on MRI application AUC = 0.64
+# 21: behav: no cleaning; ed, gain, loss: no aggregation
+# 22: MRI: no cleaning; ngm model
+# 23: behav: no cleaning; ed, gain, loss: no aggregation (part b; then combine with # 21)
+# 44: behav: no cleaning; ed, gain, loss: no aggregation (combination of 21 and 23; all in one file saved (noo file))
+# 45: behav: no cleaning; ed, gain, loss: aggregation at level 2
+# 1008: behav: no cleaning; ed, gain, loss: no aggregation
+runs = 1008
 
 # advanced settings for other studies =========================================
 # [cannot be used in PIT GD behav release] 

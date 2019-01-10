@@ -11,11 +11,12 @@ rm(list = ls())
 
 warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt import behav and ss models MRI')
 
+
 ## PARAMETERS =================================================================
 ## parameters that may be set
 # export data to PIT GD MRI or PIT GD behav release
 # none, MRI, behav
-data_release             = 'MRI'
+data_release             = 'none'
 # use last exisiting import
 import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)
@@ -114,55 +115,71 @@ behav_exempt = c(behav_exempt,'baseNAPS0008', 'baseNAPS0013', 'baseNAPS0014',
 # only for quick and dirty emergency
 subs_excl_hand  = c()
 
+## DETERMINE THE WORKING LOCATION =============================================
+# on which computer are we working right now?
+user    = paste0(as.character(Sys.info()["login"]),"/")
+root_wd = rstudioapi::getSourceEditorContext()$path
+
+# get the github folder
+res      = regexpr('GitHub',root_wd)
+path_ghb = substr(root_wd,1,res[1]+attributes(res)$'match.length'-1)
+
+# get the google drive folder
+e_true = length(grep(pattern = 'E:',root_wd,fixed=T)) > 0
+c_true = length(grep(pattern = 'C:',root_wd,fixed=T)) > 0
+
+if (e_true & !c_true) {
+  base_gd = "E:/Google Drive"
+} else if (c_true & !e_true) {
+  base_gd = paste("C:/Users/",user,"Google Drive",sep="")
+} else {
+  stop('Unknown case for working location.')
+}
+
 ## PATHS ======================================================================
-## paths (set according to your system)
-user              = paste0(as.character(Sys.info()["login"]),"/")
+# paths to VPPG exchange
+base     = file.path(base_gd,'01_Promotion/VPPG/VPPG_Exchange')
+base_bgg = base
+
+# paths for getting data
 base_dat          = 'S:/AG/AG-Spielsucht2/Daten/VPPG_Daten/Adlershof/Daten/PDT/'
-#base_dat         = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
-base_dat_GD       = paste0('C:/Users/',user,'Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/')
-base              = paste("C:/Users/",user,"Google Drive/Promotion/VPPG/VPPG_Exchange/",sep="")
-base_bgg          = paste("C:/Users/",user,"Google Drive/Promotion/VPPG/VPPG_Exchange/",sep="")
-base_lib          = paste("C:/Users/",user,"Google Drive/",sep="")
-path_ghb          = paste0('C:/Users/', user, 'GitHub') # path to GitHub; so far only for the PIT GD behav release
+base_dat_GD       = file.path(base,'Experimente/PDT/Daten/')
+path_dat          = file.path(base_dat,"pilot")
+path_dat_GD       = file.path(base_dat_GD,"pilot")
+path_postpilot_pg = file.path(base_dat,"POSTPILOT/PG")
+path_postpilot_hc = file.path(base_dat,"POSTPILOT/HC")
+path_pg           = file.path(base_dat,"PG")
 
-# other working locations
-#base              = "E:/Google Drive/Promotion/VPPG/VPPG_Exchange/"
-#base_lib          = "E:/Google Drive/"
-#base_dat_GD       = 'E:/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/'
-#path_ghb          = 'E:/GitHub'
-
-
-# some other absolute paths to be set with brute force
 # path to the matching of names and subject codes
 path_mtk          = 'S:/AG/AG-Spielsucht2/Daten/Probanden'
-path_bgg          = 'C:/Users/genaucka/Google Drive/Diplom/LA/daten_behav_test_finale_SP_Diplom/Results'
 
-# paths that build on above base paths; DO NOT CHANGE
-path_ana          = paste0(base_lib,"Library/01_Projects/PIT_GD/R/analyses/")
-path_anp          = paste0(path_ana,"01_classification")
-path_dat          = paste0(base_dat,"pilot/")
-path_dat_GD       = paste0(base_dat_GD,"pilot/")
-path_postpilot_pg = paste0(base_dat,"POSTPILOT/PG/")
-path_postpilot_hc = paste0(base_dat,"POSTPILOT/HC/")
-path_pg           = paste0(base_dat,"PG/")
-path_res          = paste0(base,"Experimente/PDT/analysis/results")
-path_mtc          = paste0(base,"BCAN/Probandenlisten/matching")
-path_rat          = paste0(base,"Bilderrating/Results_Pretest/Result files/")
-path_rrs          = paste0(base,"Bilderrating/analysis/results")
-path_que          = paste0(base,"Bilderrating/Results_Pretest/Result files/questionnaires - organize in R")
-path_que_pp       = paste0(base,"Bilderrating/Results_Pretest/Result files/import old physio pretest questions")
-#path_scr          = paste0(base,'Screening/Screening_Export')
+# path to LA study results
+path_bgg          = file.path(base_gd,'09_Diplom/LA/daten_behav_test_finale_SP_Diplom/Results')
+
+# paths to scripts
+path_ana          = file.path(path_ghb,"PIT_GD/R/analyses")
+path_anp          = file.path(path_ana,"01_classification")
+path_lib          = file.path(path_ghb,"R")
+path_plb          = path_ana
+path_mod          = file.path(path_ana,"model_calculation")
+path_imp          = file.path(base,'Bilderrating/Bildmaterial/VPPG_stim_04_reresized')
+
+# paths to VPPG exchange (data and other)
+path_res          = file.path(base,"Experimente/PDT/analysis/results")
+path_mtc          = file.path(base,"BCAN/Probandenlisten/matching")
+path_rat          = file.path(base,"Bilderrating/Results_Pretest/Result files")
+path_rrs          = file.path(base,"Bilderrating/analysis/results")
+path_que          = file.path(base,"Bilderrating/Results_Pretest/Result files/questionnaires - organize in R")
+path_que_pp       = file.path(base,"Bilderrating/Results_Pretest/Result files/import old physio pretest questions")
 path_scr          = path_que
-path_MRI          = paste0(base_dat,'MRI/')
-path_led          = paste0(base,"Experimente/PDT/ledaLab_anal/")
-path_lib          = paste0(base_lib,"Library/R")
-path_plb          = paste0(base_lib,"Library/01_Projects/PIT_GD/R/analyses")
-path_mod          = paste0(base_lib,"Library/01_Projects/PIT_GD/R/analyses/model_calculation")
-path_imp          = paste0(base,'Bilderrating/Bildmaterial/VPPG_stim_04_reresized')
-path_mes          = 'C:/Users/Alexander/Google Drive/Library/MATLAB/PDT/MRI/sl/ROIs/from_ext_HD/ROIs/ROIs_ss_model'
-path_mep          = 'C:/Users/Alexander/Google Drive/Library/MATLAB/PDT/MRI/sl/ROIs/from_ext_HD/ROIs/ROIs_gPPI_targets'
+path_MRI          = file.path(base_dat,'MRI')
+path_led          = file.path(base,"Experimente/PDT/ledaLab_anal")
 
-# if working at home
+# path to ROIs
+path_mes          = file.path(base_gd,'02_Library/MATLAB/PDT/MRI/sl/ROIs/from_ext_HD/ROIs/ROIs_ss_model')
+path_mep          = file.path(base_gd,'02_Library/MATLAB/PDT/MRI/sl/ROIs/from_ext_HD/ROIs/ROIs_gPPI_targets')
+
+# if working at home (what paths are those?)
 #warning('path_mep and path_mes are set to working at home')
 path_mes          = path_dat_GD
 path_mep          = path_dat_GD

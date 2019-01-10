@@ -47,6 +47,13 @@ if (which_study == 'MRI') {
 do_data_inv      = 0
 data_pdt_inv_var = 'imageRating1s'
 
+# choose the desired aggregated/not aggregated variables
+if (use_agg) {
+  data_pdt = agk.select.aggregation (data_pdt,'MRI')
+} else {
+  data_pdt = agk.select.aggregation (data_pdt,'behav')
+}
+
 ## PREPARATIONS ===============================================================
 if (physio_sum_fun == 'mean') {
   data_pdt$corr = data_pdt$corr_auc

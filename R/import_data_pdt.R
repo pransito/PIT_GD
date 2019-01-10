@@ -76,6 +76,8 @@ get_LAch_for_MRI         = 0
 get_MRI_extr             = 0
 # how much aggregate (3 is from 12by12 to 4by4 because 12/3 == 4; 1 would be no aggregation)
 cur_agg                  = 3
+# use aggregation in the analyses? will be used in select_study in PIT_GD repo version
+use_agg                  = 0
 # matching criterion p-value (for matching experimental groups)
 m_crit                   = 0.12
 # KFG cut off equal and above is PG (16 or 25)

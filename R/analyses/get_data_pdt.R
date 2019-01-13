@@ -223,12 +223,6 @@ for (ii in 1:total) {
   cur_df$ed_abs = ed_neu
   cur_df$ed     = NA
   
-  cur_df$gain_unagg      = cur_df$gain
-  cur_df$loss_unagg      = cur_df$loss
-  cur_df$ed_abs_unagg    = cur_df$ed_abs
-  cur_df$gainxloss_unagg = cur_df$gainxloss
-  
-  
   # gamble params based on unaggregated gain, loss, ed
   cur_df_unagg = get.gamble.parameters(cur_df)
   names(cur_df_unagg) = paste0(names(cur_df_unagg),'_unagg')

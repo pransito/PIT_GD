@@ -54,9 +54,9 @@ data_pdt_inv_var = 'imageRating1s'
 
 # choose the desired aggregated/not aggregated variables
 if (use_agg) {
-  data_pdt = agk.select.aggregation (data_pdt,'MRI')
+  data_pdt = agk.select.aggregation(data_pdt,'MRI')
 } else {
-  data_pdt = agk.select.aggregation (data_pdt,'behav')
+  data_pdt = agk.select.aggregation(data_pdt,'behav')
 }
 
 ## PREPARATIONS ===============================================================

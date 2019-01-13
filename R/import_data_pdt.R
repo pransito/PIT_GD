@@ -18,10 +18,10 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 # none, MRI, behav
 data_release             = 'none'
 # use last exisiting import
-import_existing_imp      = 1
+import_existing_imp      = 0
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
-import_from_scratch      = 0
+import_from_scratch      = 1
 # do any matching or non at all?
 do_matching_MRI          = 1
 # do any matching or non at all?
@@ -153,7 +153,8 @@ base     = file.path(base_gd,'01_Promotion/VPPG/VPPG_Exchange')
 base_bgg = base
 
 # paths for getting data
-base_dat          = 'S:/AG/AG-Spielsucht2/Daten/VPPG_Daten/Adlershof/Daten/PDT'
+#base_dat          = 'S:/AG/AG-Spielsucht2/Daten/VPPG_Daten/Adlershof/Daten/PDT'
+base_dat          = file.path(base_gd,'02_Library/01_Data/PIT_GD/behav')
 base_dat_GD       = file.path(base,'Experimente/PDT/Daten/')
 path_dat          = file.path(base_dat,"pilot")
 path_dat_GD       = file.path(base_dat_GD,"pilot")
@@ -685,7 +686,7 @@ if (import_existing_imp == 0) {
     
     # get the matching that worked from autumn 2018
     # also back upped here: S:\AG\AG-Spielsucht2\Daten\VPPG_Daten\MRT\MRT_sample
-    setwd('C:/Users/genaucka/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/pilot')
+    setwd(path_dat_GD)
     sjinfo_30_30 = R.matlab::readMat('Sjinfo_30_30.mat')
     mri_incl    = as.character(unlist(sjinfo_30_30$'Sjinfo'[1][1][[1]][1]))
     mri_excl    = dfs[[1]]$VPPG[!dfs[[1]]$VPPG %in% mri_incl]
@@ -705,7 +706,7 @@ if (import_existing_imp == 0) {
   if (do_matching_PP) {
     # get the matching that worked from autumn 2018 (postpilot)
     # also back upped here: S:\AG\AG-Spielsucht2\Daten\VPPG_Daten\Adlershof\Daten\PDT\POSTPILOT\sample
-    setwd('C:/Users/genaucka/Google Drive/Promotion/VPPG/VPPG_Exchange/Experimente/PDT/Daten/pilot')
+    setwd(path_dat_GD)
     load('all_subjects_POSTPILOT.RData')
     pp_incl     = all_subjects_POSTPILOT
     pp_excl     = dfs[[2]]$VPPG[!dfs[[2]]$VPPG %in% pp_incl]

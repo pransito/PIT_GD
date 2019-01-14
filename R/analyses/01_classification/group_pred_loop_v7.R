@@ -291,8 +291,8 @@ if (outer_cv_c_model) {
 # REPORTING: PREPARATION =====================================================
 if (do_report) {
   cur_home = getwd()
-  setwd(base_gd)
-  setwd('02_Library/02_Results/PIT_GD/R/analyses/01_classification/results')
+  setwd(path_res_classif)
+  setwd('results')
   setwd(as.character(runs))
   if (pred_grp) {
     all_res_files = dir(pattern = paste0(which_study,'_predGrp1'))
@@ -568,21 +568,28 @@ if (do_report_no_added_feat | do_report_with_added_feat | do_report_feat_only) {
     
     # density plots with two densities
     # plots also the density of the performance of the classifier
-    Ha_auc               = auc
-    Ha_auc               = rep_len(Ha_auc,length.out = length(auc_p))
-    cur_dat_gl           = data.frame(null_classifier = auc_p,full_classifier = Ha_auc,classifier = 'elastic net')
-    cur_dat              = rbind(cur_dat_gl) #rbind(cur_dat_be,cur_dat_gl,cur_dat_sv)
-    cur_dat              = melt(cur_dat,id.vars = c('classifier'))
-    cur_dat$AUC_ROC      = cur_dat$value
-    cur_dat$value        = NULL
+    Ha_auc                 = auc
+    Ha_auc                 = rep_len(Ha_auc,length.out = length(auc_p))
+    cur_dat_gl             = data.frame(null_classifier = auc_p,full_classifier = Ha_auc,classifier = 'elastic net')
+    cur_dat                = rbind(cur_dat_gl) #rbind(cur_dat_be,cur_dat_gl,cur_dat_sv)
+    cur_dat                = melt(cur_dat,id.vars = c('classifier'))
+    cur_dat$AUC_ROC        = cur_dat$value
+    cur_dat$value          = NULL
+    cur_dat$algorithm      = cur_dat$classifier
+    cur_dat$classifier     = cur_dat$variable  
+    cur_dat$classifier     = agk.recode.c(cur_dat$classifier,c('full_classifier','null_classifier'),c('full','null'))
     
     # plot
-    p = ggplot(cur_dat,aes(x=AUC_ROC, fill=variable)) + geom_density(alpha=0.25)
-    p = p + facet_grid(classifier ~ .) + ggtitle('AUC densities for elastic net classifier compared to null-classifier')
+    p = ggplot(cur_dat,aes(x=AUC_ROC, fill=classifier)) + geom_density(alpha=0.25)
+    p = p + ggtitle('AUC densities for elastic net classifier compared to null-classifier')
+    #p = p + facet_grid(algorithm ~ .)
     p = p + geom_vline(aes(xintercept = mean(auc)),colour = 'green',size= 1.5)
     p = p + theme_bw()
     p = p + theme(axis.text=element_text(size=14, face = "bold"),
                   axis.title=element_text(size=20,face="bold"))
+    p = p + theme(plot.title = element_text(size=22))
+    p = p + theme(legend.text = element_text(size=18))
+    p = p + theme(legend.title= element_text(size=18))
     print(p)
   }
   

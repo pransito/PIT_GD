@@ -40,11 +40,7 @@ which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures 
 #which_study = "MRI_LB" # subsample MA
 
 # default data_inv
-if (which_study == 'MRI') {
-  do_data_inv = 0 
-} else {
-  do_data_inv = 0
-}
+do_data_inv = 0 
 
 # desired data_inv
 # use of cohort all subjects but that subject of the group to determine value
@@ -54,7 +50,7 @@ data_pdt_inv_var = 'imageRating1s'
 
 # choose the desired aggregated/not aggregated variables
 if (use_agg) {
-  data_pdt = agk.select.aggregation(data_pdt,'MRI')
+  data_pdt = agk.select.aggregation(data_pdt,'MRI') # aggregated
 } else {
   data_pdt = agk.select.aggregation(data_pdt,'behav')
 }

@@ -60,7 +60,6 @@ if (doFitGlmer) {
   modla_cg  = glmer(accept_reject ~ (gain + loss )*HCPG + cat*HCPG + (gain + loss + cat |subject) + (gain + loss |stim)  + (gain + loss |cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
   modla_cgi = glmer(accept_reject ~ (gain + loss )*cat*HCPG + ((gain + loss )*cat|subject) + (gain + loss |stim),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
   modla_ci  = glmer(accept_reject ~ (gain + loss )*cat + ((gain + loss )*cat|subject) + (gain + loss |stim),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
-  
 }
 
 ## glmer models lae (MRI study) ===============================================
@@ -219,7 +218,7 @@ names(mod_accnc) = c('Group','mean_acceptance','ci_0025','ci_0975')
 mod_accnc$Group  = agk.recode.c(mod_accnc$Group,'PG','GD')
 
 # stats
-anova(moda_00,moda_01,moda_02)
+anova(moda_00,moda_01,moda_02) # effect of category and group
 
 # stats without cat (simple acceptance rate difference between groups)
 anova(moda_00,moda_01b)
@@ -241,7 +240,7 @@ if (doBoot == 1) {
   save(file= 'effects_under_0_0g_perm_1000.RData',list=c('effects_under_0_0g'))
   
   # bootstrap cfint modla_0g (np boot)
-  boot_cfint_0g = agk.boot.cfint.mermod(mermod = modla_0g,num_cpus = cur_cpus,num = cur_num,fun_extract = fixef,cur_control = cur_control,type = 'non-parametric')
+  boot_cfint_0g = agk.boot.cfint.mermod(mermod = modla_0g,num_cpus = cur_cpus,num = cur_num,fun_extract = get_la_fixef_pdt,cur_control = cur_control,type = 'non-parametric')
   save(file = 'boot_cfint_0g_1000.RData',list=c('boot_cfint_0g'))
 }
 
@@ -302,3 +301,8 @@ dodge          = position_dodge(width=0.9)
 mRat           = mRat + geom_bar(position=dodge, stat="identity")
 mRat           = mRat + geom_errorbar(aes(ymin = ci_0025, ymax = ci_0975), position=dodge, width=0.25) + theme_bw()
 print(mRat)
+
+confint.merMod(modla_0g,method = 'Wald')
+
+## get cfint using bootmer ====================================================
+# does not work or is wayyyy too slow

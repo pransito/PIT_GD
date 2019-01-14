@@ -18,10 +18,10 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 # none, MRI, behav
 data_release             = 'none'
 # use last exisiting import
-import_existing_imp      = 0
+import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
-import_from_scratch      = 1
+import_from_scratch      = 0
 # do any matching or non at all?
 do_matching_MRI          = 1
 # do any matching or non at all?
@@ -161,6 +161,10 @@ path_dat_GD       = file.path(base_dat_GD,"pilot")
 path_postpilot_pg = file.path(base_dat,"POSTPILOT/PG")
 path_postpilot_hc = file.path(base_dat,"POSTPILOT/HC")
 path_pg           = file.path(base_dat,"PG")
+
+# path for results
+base_res          = file.path(base_gd,'02_Library/02_Results/PIT_GD')
+path_res_classif  = file.path(base_res,'R/analyses/01_classification')
 
 # path to the matching of names and subject codes
 path_mtk          = 'S:/AG/AG-Spielsucht2/Daten/Probanden'

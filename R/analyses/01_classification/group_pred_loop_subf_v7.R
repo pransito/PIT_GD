@@ -78,7 +78,7 @@ agk.pred.group.CV = function(outer_CV,addfeat,add_cr_pp_fn,add_cr_ra_fn,des_seed
   pb = curpbfun(title = cur_title, min = 0,max = runs, width = box_width)
   
   # get into wd
-  setwd("01_classification/")
+  setwd('01_classification/')
   
   ## run the loop for (outer) CV
   for(hh in 1:runs) {
@@ -110,8 +110,9 @@ agk.pred.group.CV = function(outer_CV,addfeat,add_cr_pp_fn,add_cr_ra_fn,des_seed
     
     # interim_save
     cur_home = getwd()
-    dir.create(file.path(cur_home, paste0('results/',runs)),recursive=T)
-    setwd(file.path(cur_home, paste0('results/',runs)))
+    setwd(path_res_classif)
+    dir.create(file.path(path_res_classif, paste0('results/',runs)),recursive=T)
+    setwd(file.path(path_res_classif, paste0('results/',runs)))
     cur_var_list = c(ls(pattern = '^CV'),ls(pattern = '^list_winning_model'),ls(pattern = '^cur_mod_sel'),
                      ls(pattern = 'fm'),ls(pattern = '^des_seed'))
     save(file = paste0(which_study,'_predGrp_INTERIM_save',pred_grp,svfnm,'.RData'),

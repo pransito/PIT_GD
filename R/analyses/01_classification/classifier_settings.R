@@ -24,10 +24,9 @@ outer_cv_c_model        = 0 # control model/null-model for classification; predi
 # not needed for MRI case (p-value comp in dfferent script, using random classification)
 
 # what to report
-do_report                 = 1
-do_report_no_added_feat   = 1
+do_report_no_added_feat   = 0
 #do_report_with_added_feat = 0
-do_report_feat_only       = 0
+do_report_feat_only       = 1
 
 # number of runs to get the CV results distribution, >=1000 recommended
 # runs also will be the name of the results folder
@@ -53,7 +52,7 @@ do_report_feat_only       = 0
 # 44: behav: no cleaning; ed, gain, loss: no aggregation (combination of 21 and 23; all in one file saved (noo file))
 # 45: behav: no cleaning; ed, gain, loss: aggregation at level 2
 # 1008: behav: no cleaning; ed, gain, loss: no aggregation
-runs = 1008
+runs = 1000
 
 # advanced settings for other studies =========================================
 # [cannot be used in PIT GD behav release] 

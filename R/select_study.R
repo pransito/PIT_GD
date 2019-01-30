@@ -27,9 +27,9 @@ data_pdt_inv = data_pdt
 
 ## PARAMETER SETTINGS =========================================================
 # which study to look at (Cohorts)? ===========================================
-which_study = "MRI"
+#which_study = "MRI"
 #which_study = "MRI_and_POSTPILOT" # lumping those together (for KFG prediction e.g.)
-#which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
+which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
 #which_study = "TEST" # when K.Brehm used POSTPILOT and simulated facial expression (8888) or not (7777)
 #which_study = "Prestudy" # HC groups before core behav study; for image adequacy (PhysioPilot)
 #which_study = "sanity"
@@ -303,6 +303,8 @@ if (which_study == 'MRI') {
   report_CV_p = T
   # master add cue reactivity: peripheral physiology or MRI; here: MRI
   add_cr_pp_ma         = T
+} else {
+  add_cr_pp_ma         = F
 }
 
 # master add cue reactivity: ratings
@@ -310,7 +312,7 @@ if (which_study == 'MRI') {
 add_cr_ra_ma         = F
 
 # run the initializations
-cd('..')
+setwd('..')
 setwd('analyses/01_classification/')
 init_run = T
 source('group_pred_loop_v7.R')

@@ -233,15 +233,16 @@ summary(modlae_cg)
 
 ## plot loss aversion between groups ==========================================
 # bootstrap the CIs
-setwd(bootResWd)
+#setwd(bootResWd)
+setwd('C:/Users/genaucka/Google Drive/02_Library/02_Results/PIT_GD/R/analyses/02_univariate_testing/results/cfints')
 if (doBoot == 1) {
   # bootstrap p-value modla_0g (permutation)
   effects_under_0_0g = agk.boot.p.mermod(mermod = modla_0g,mermod0 = modla_01,num_cpus = cur_cpus,num = cur_num,fun_extract = fixef,cur_control = cur_control,permvars = c('HCPG'),type='perm')
-  save(file= 'effects_under_0_0g_perm_1000.RData',list=c('effects_under_0_0g'))
+  save(file= 'effects_under_0_0g_perm_300.RData',list=c('effects_under_0_0g'))
   
   # bootstrap cfint modla_0g (np boot)
   boot_cfint_0g = agk.boot.cfint.mermod(mermod = modla_0g,num_cpus = cur_cpus,num = cur_num,fun_extract = get_la_fixef_pdt,cur_control = cur_control,type = 'non-parametric')
-  save(file = 'boot_cfint_0g_1000.RData',list=c('boot_cfint_0g'))
+  save(file = 'boot_cfint_0g_300.RData',list=c('boot_cfint_0g'))
 }
 
 # graph fixed effects la model

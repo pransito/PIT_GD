@@ -62,6 +62,7 @@ agk.load.ifnot.install('caret')
 #agk.load.ifnot.install('WhatIf')
 #agk.load.ifnot.install('Matching')
 agk.load.ifnot.install('OptimalCutpoints')
+agk.load.ifnot.install('dplyr')
 
 # what to run =================================================================
 if (!init_run) {

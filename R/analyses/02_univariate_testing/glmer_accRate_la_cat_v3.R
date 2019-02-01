@@ -34,7 +34,7 @@ if (which_study == 'MRI') {
 }
 bootResWd = getwd()
 # how many bootstraps/permutations?
-cur_num   = 300
+cur_num   = 100
 # how many cpus to use?
 cur_cpus  = detectCores()-1
 # fit glmer models?
@@ -234,39 +234,47 @@ summary(modlae_cg)
 ## plot loss aversion between groups ==========================================
 # bootstrap the CIs
 #setwd(bootResWd)
-setwd('C:/Users/genaucka/Google Drive/02_Library/02_Results/PIT_GD/R/analyses/02_univariate_testing/results/cfints')
+#setwd('C:/Users/genaucka/Google Drive/02_Library/02_Results/PIT_GD/R/analyses/02_univariate_testing/results/cfints')
+setwd('E:/Google Drive/02_Library/02_Results/PIT_GD/R/analyses/02_univariate_testing/results/cfints')
+library(dplyr)
 if (doBoot == 1) {
   # bootstrap p-value modla_0g (permutation)
   effects_under_0_0g = agk.boot.p.mermod(mermod = modla_0g,mermod0 = modla_01,num_cpus = cur_cpus,num = cur_num,fun_extract = fixef,cur_control = cur_control,permvars = c('HCPG'),type='perm')
   save(file= 'effects_under_0_0g_perm_300.RData',list=c('effects_under_0_0g'))
   
   # bootstrap cfint modla_0g (np boot)
-  boot_cfint_0g = agk.boot.cfint.mermod(mermod = modla_0g,num_cpus = cur_cpus,num = cur_num,fun_extract = get_la_fixef_pdt,cur_control = cur_control,type = 'non-parametric')
-  save(file = 'boot_cfint_0g_300.RData',list=c('boot_cfint_0g'))
+  nonp_unit        = 'batch'
+  nonp_batch_names = c('HCPG','subject')
+  cur_type         = 'non-parametric'
+  boot_cfint_0g = agk.boot.cfint.mermod(mermod = modla_0g,num_cpus = cur_cpus,num = cur_num,fun_extract = get_la_fixef_pdt,cur_control = cur_control,
+                                        cur_type = cur_type, nonp_unit = nonp_unit,nonp_batch_names = nonp_batch_names,
+                                        agk.boot.cfint.mermod.subfun = agk.boot.cfint.mermod.subfun)
+  save(file = 'boot_cfint_0g_100_npmu.RData',list=c('boot_cfint_0g'))
 }
 
 # graph fixed effects la model
 # alternative graph using cfint from fixed effects bootstrap
 cie    = new.env()
-load('boot_cfint_0g_1000_wc.RData',envir = cie)
+load('boot_cfint_0g_100_npmu.RData',envir = cie)
 rcfint = cie$boot_cfint_0g[[1]]
 for (cc in 2:length(cie$boot_cfint_0g)) {
   rcfint = rbind(rcfint,cie$boot_cfint_0g[[cc]])
 }
 
 # add the original
-rcfint = rbind(rcfint,fixef(modla_0g))
+#rcfint = rbind(rcfint,get_la_fixef_pdt(modla_0g))
 
 # df of bootstrap data
 rcfint           = data.frame(rcfint)
-names(rcfint)[1] = c('Intercept')
-rcfint_HC        = rcfint[c('Intercept','gain','loss')]
-rcfint_PG        = rcfint[c('HCPGPG','gain.HCPGPG','loss.HCPGPG')] + rcfint_HC
-names(rcfint_PG) = c('Intercept','gain','loss')
-rcfint_HC$group  = 'HC'
-rcfint_PG$group  = 'PG'
-rcfint           = rbind(rcfint_HC,rcfint_PG)
-rcfint$la        = -rcfint$loss/rcfint$gain
+x_la_HCgrPG        = rcfint$x_la_HCgrPG   
+rcfint$x_la_HCgrPG = NULL
+rcfint_HC          = rcfint[grep('_HC',names(rcfint))]
+rcfint_HC$group    = 'HC'
+rcfint_PG          = rcfint[grep('_PG',names(rcfint))]
+rcfint_PG$group    ='PG'
+names(rcfint_HC)   = gsub('_HC','',names(rcfint_HC))
+names(rcfint_PG)   = gsub('_PG','',names(rcfint_PG))
+rcfint             = rbind(rcfint_HC,rcfint_PG)
 
 rcfinta         = aggregate(.~group,data=rcfint,FUN=agk.mean.quantile,lower=0.025,upper=0.975)
 rcfintdf        = data.frame(rcfinta[[1]],rcfinta[[2]])
@@ -293,7 +301,8 @@ if (put_in_original_fe) {
 }
 
 # actul plotting
-la_overall$var = factor(la_overall$var, levels = c('la','gain','loss','Intercept'))
+la_overall$var = agk.recode.c(la_overall$var,la_overall$var,c('intercept','intercept','gain','gain','loss','loss','la','la'))
+la_overall$var = factor(la_overall$var, levels = c('la','gain','loss','intercept'))
 mRat           = ggplot(la_overall, aes(Group, mean,fill = var))
 mRat           = mRat + labs(x='Group', y=paste('Mean of LA (',0.95*100,'% CI, bootstrapped)'))
 mRat           = mRat + ggtitle("Fixed effects for loss aversion parameters per group")
@@ -303,7 +312,33 @@ mRat           = mRat + geom_bar(position=dodge, stat="identity")
 mRat           = mRat + geom_errorbar(aes(ymin = ci_0025, ymax = ci_0975), position=dodge, width=0.25) + theme_bw()
 print(mRat)
 
-confint.merMod(modla_0g,method = 'Wald')
+# cfint based boot based LA p-value
+agk.density_p(x_la_HCgrPG,0)
+
+# p-value for LA based in permuation
+cie    = new.env()
+load('effects_under_0_0g_perm_300.RData',envir = cie)
+rcfint = cie$effects_under_0_0g[[1]]
+for (cc in 2:length(cie$effects_under_0_0g)) {
+  rcfint = rbind(rcfint,cie$effects_under_0_0g[[cc]])
+}
+rcfint = data.frame(rcfint)
+
+rcfint$gain.HCPGPG = rcfint$gain + rcfint$gain.HCPGPG
+rcfint$loss.HCPGPG = rcfint$loss + rcfint$loss.HCPGPG
+rcfint$HCPGPG      = rcfint$X.Intercept. + rcfint$HCPGPG
+rcfint$LA          = -rcfint$loss/rcfint$gain
+rcfint$LA.HCPGPG   = -rcfint$loss.HCPGPG/rcfint$gain.HCPGPG
+rcfint$x_LA_HC_PG  = rcfint$LA - rcfint$LA.HCPGPG
+
+# get the p-value
+obs_LA_diff = get_la_fixef_pdt(modla_0g)
+print(1-agk.density_p(rcfint$x_LA_HC_PG,obs_LA_diff["x_la_HCgrPG"]))
+
+
+
+
 
 ## get cfint using bootmer ====================================================
 # does not work or is wayyyy too slow
+#confint.merMod(modla_0g,method = 'Wald')

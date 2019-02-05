@@ -63,7 +63,7 @@ if (doFitGlmer) {
 }
 
 ## glmer models lae (MRI study) ===============================================
-if (doFitGlmer) {
+if (doFitGlmer & which_study == 'MRI') {
   modlae_00  = glmer(accept_reject ~ (gain + loss + ed_abs) + (gain + loss + ed_abs|subject) + (gain + loss + ed_abs |stim) + (gain + loss + ed_abs |cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
   modlae_0g  = glmer(accept_reject ~ (gain + loss + ed_abs)*HCPG + (gain + loss + ed_abs|subject) + (gain + loss + ed_abs |stim) + (gain + loss + ed_abs |cat),data = data_pdt,family = 'binomial',nAGQ = 0,control=cur_control)
   
@@ -83,46 +83,121 @@ message(' ')
 message('... percent subjects.')
 
 ## acceptance rate and under different cue conditions #########################
-# acceptance rate graph, descriptives (CIs over subjects; better SD?)
-mod_acc        = aggregate(as.numeric(as.character(data_pdt$accept_reject)),by=list(data_pdt$subject,data_pdt$cat), FUN=mean.rmna)
-names(mod_acc) = c('subject','category','mean_acceptance')
-mod_acc$Group  = agk.recode.c(mod_acc$subject,dat_match$VPPG,dat_match$HCPG)
-mod_acc        = aggregate(mod_acc$mean_acceptance,by=list(mod_acc$Group,mod_acc$cat),FUN=agk.boot.ci,R=2000,lower=0.025,upper=0.975,cur_fun=mean)
-mod_acc        = data.frame(mod_acc[[1]], mod_acc[[2]],mod_acc[[3]])
-names(mod_acc) = c('Group','category','mean_acceptance','ci_0025','ci_0975')
-mod_acc$Group  = agk.recode.c(mod_acc$Group,'PG','GD')
+if (which_study == 'POSTPILOT_HCPG') {
+  # acceptance rate graph, descriptives (CIs over subjects per category)
+  # acceptance rate not based on lmer model
+  mod_acc        = aggregate(as.numeric(as.character(data_pdt$accept_reject)),by=list(data_pdt$subject,data_pdt$cat), FUN=mean.rmna)
+  names(mod_acc) = c('subject','category','mean_acceptance')
+  mod_acc$Group  = agk.recode.c(mod_acc$subject,dat_match$VPPG,dat_match$HCPG)
+  mod_acc        = aggregate(mod_acc$mean_acceptance,by=list(mod_acc$Group,mod_acc$cat),FUN=agk.boot.ci,R=2000,lower=0.025,upper=0.975,cur_fun=mean)
+  mod_acc        = data.frame(mod_acc[[1]], mod_acc[[2]],mod_acc[[3]])
+  names(mod_acc) = c('Group','category','mean_acceptance','ci_0025','ci_0975')
+  mod_acc$Group  = agk.recode.c(mod_acc$Group,'PG','GD')
+  
+  mRat  = ggplot(mod_acc, aes(category, mean_acceptance,fill=Group))
+  mRat  = mRat + labs(x='category', y=paste('Mean of acceptance (',0.95*100,'% CI, bootstrapped)'))
+  mRat  = mRat + ggtitle("Mean acceptance across categories")
+  mRat  = mRat + geom_bar(position="dodge", stat="identity")
+  dodge = position_dodge(width=0.9)
+  mRat  = mRat + geom_bar(position=dodge, stat="identity")
+  mRat  = mRat + geom_errorbar(aes(ymin = ci_0025, ymax = ci_0975), position=dodge, width=0.25) + theme_bw()
+  print(mRat)
+}
 
-mRat  = ggplot(mod_acc, aes(category, mean_acceptance,fill=Group))
-mRat  = mRat + labs(x='category', y=paste('Mean of acceptance (',0.95*100,'% CI, bootstrapped)'))
-mRat  = mRat + ggtitle("Mean acceptance across categories")
-mRat  = mRat + geom_bar(position="dodge", stat="identity")
-dodge = position_dodge(width=0.9)
-mRat  = mRat + geom_bar(position=dodge, stat="identity")
-mRat  = mRat + geom_errorbar(aes(ymin = ci_0025, ymax = ci_0975), position=dodge, width=0.25) + theme_bw()
-print(mRat)
 
 # acceptance rate based on laec_group model (MRI study) #######################
-# general acceptance rate difference between group
-#laecg_effects = summary(modlae_cg)
+# general acceptance rate difference between group (using the neutral cat)
+if (which_study == 'MRI') {
+  laecg_effects = summary(modlae_cg)
+
+  HC_acc   = logistic(laecg_effects$coefficients['(Intercept)',1])
+  HC_acc_u = logistic(laecg_effects$coefficients['(Intercept)',1] + 1.96*laecg_effects$coefficients['(Intercept)',2])
+  HC_acc_l = logistic(laecg_effects$coefficients['(Intercept)',1] - 1.96*laecg_effects$coefficients['(Intercept)',2])
+  
+  GD_acc   = logistic(laecg_effects$coefficients['(Intercept)',1] + laecg_effects$coefficients['HCPGPG',1])
+  GD_acc_u = logistic(laecg_effects$coefficients['(Intercept)',1] + laecg_effects$coefficients['HCPGPG',1] + 1.96*laecg_effects$coefficients['HCPGPG',2])
+  GD_acc_l = logistic(laecg_effects$coefficients['(Intercept)',1] + laecg_effects$coefficients['HCPGPG',1] - 1.96*laecg_effects$coefficients['HCPGPG',2])
+  
+  message('Acceptance rate for HC, for GD at neutral category and given all other predictors are 0:')
+  message(HC_acc)
+  message(GD_acc)
+  
+  # acceptance rate per category controlled for neutral
+  HC_acc_gam = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1]) - HC_acc
+  HC_acc_neg = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1]) - HC_acc 
+  HC_acc_pos = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1]) - HC_acc
+  
+  HC_acc_gam_u = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] + 1.96*laecg_effects$coefficients['catgambling',2]) - HC_acc
+  HC_acc_neg_u = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] + 1.96*laecg_effects$coefficients['catnegative',2]) - HC_acc 
+  HC_acc_pos_u = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] + 1.96*laecg_effects$coefficients['catpositive',2]) - HC_acc
+  
+  HC_acc_gam_l = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] - 1.96*laecg_effects$coefficients['catgambling',2]) - HC_acc
+  HC_acc_neg_l = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] - 1.96*laecg_effects$coefficients['catnegative',2]) - HC_acc 
+  HC_acc_pos_l = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] - 1.96*laecg_effects$coefficients['catpositive',2]) - HC_acc
+  
+  GD_acc_gam = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catgambling',1]) - GD_acc
+  GD_acc_neg = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catnegative',1]) - GD_acc
+  GD_acc_pos = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catpositive',1]) - GD_acc
+  
+  GD_acc_gam_u = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catgambling',1] + 1.96*laecg_effects$coefficients['HCPGPG:catgambling',2]) - GD_acc
+  GD_acc_neg_u = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catnegative',1] + 1.96*laecg_effects$coefficients['HCPGPG:catnegative',2]) - GD_acc
+  GD_acc_pos_u = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catpositive',1] + 1.96*laecg_effects$coefficients['HCPGPG:catpositive',2]) - GD_acc
+  
+  GD_acc_gam_l = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catgambling',1] - 1.96*laecg_effects$coefficients['HCPGPG:catgambling',2]) - GD_acc
+  GD_acc_neg_l = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catnegative',1] - 1.96*laecg_effects$coefficients['HCPGPG:catnegative',2]) - GD_acc
+  GD_acc_pos_l = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catpositive',1] - 1.96*laecg_effects$coefficients['HCPGPG:catpositive',2]) - GD_acc
+  
+  # print delta ac rate for GD and HC
+  message('Acceptance rate delta for HC, for GD at gambling category (vs. neutral):')
+  message(HC_acc_gam)
+  message(GD_acc_gam)
+  message('Acceptance rate delta for HC, for GD at negative category (vs. neutral):')
+  message(HC_acc_neg)
+  message(GD_acc_neg)
+  message('Acceptance rate delta for HC, for GD at positive category (vs. neutral):')
+  message(HC_acc_pos)
+  message(GD_acc_pos)
+  
+  
+  # make a graph of this
+  HC_gam = c(HC_acc_gam,HC_acc_gam_l,HC_acc_gam_u,'gambling','HC')
+  HC_neg = c(HC_acc_neg,HC_acc_neg_l,HC_acc_neg_u,'negative','HC')
+  HC_pos = c(HC_acc_pos,HC_acc_pos_l,HC_acc_pos_u,'positive','HC')
+  
+  GD_gam = c(GD_acc_gam,GD_acc_gam_l,GD_acc_gam_u,'gambling','GD')
+  GD_neg = c(GD_acc_neg,GD_acc_neg_l,GD_acc_neg_u,'negative','GD')
+  GD_pos = c(GD_acc_pos,GD_acc_pos_l,GD_acc_pos_u,'positive','GD')
+  
+  cur_mat = as.data.frame(rbind(HC_gam,HC_neg,HC_pos,GD_gam,GD_neg,GD_pos))
+  names(cur_mat) = c('delta_percentage','CI_lower','CI_upper','category','group')
+  cur_fun= function(x) {return(as.numeric(as.character(x)))}
+  cur_mat[1:3]  = lapply(cur_mat[1:3],FUN = cur_fun)
+  #cur_mat = melt(cur_mat,id.vars = c('category','group'))
+  
+  mRat  = ggplot(cur_mat, aes(category, delta_percentage,fill=group))
+  mRat  = mRat + labs(x='category', y=paste('shift in acceptance rate (',0.95*100,'% CI)'))
+  mRat  = mRat + ggtitle("Shift in mean acceptance across categories")
+  mRat  = mRat + geom_bar(position="dodge", stat="identity")
+  dodge = position_dodge(width=0.9)
+  mRat  = mRat + geom_bar(position=dodge, stat="identity")
+  mRat  = mRat + geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), position=dodge, width=0.25) + theme_bw()
+  mRat  = mRat + theme(axis.text=element_text(size=18),
+                       axis.title=element_text(size=20,face="bold")) + theme(plot.title = element_text(size=22)) 
+  mRat  = mRat +  theme(legend.title = element_text(size=18)) +  theme(legend.text = element_text(size=15))
+  print(mRat)
+  
+  print(anova(modlae_c0,modlae_cg))
+  print(summary(modlae_cg))
+}
+
+## sensitivity to gain, loss, LA ==============================================
 laecg_effects = summary(modla_0g)
-
-HC_acc   = logistic(laecg_effects$coefficients['(Intercept)',1])
-HC_acc_u = logistic(laecg_effects$coefficients['(Intercept)',1] + 1.96*laecg_effects$coefficients['(Intercept)',2])
-HC_acc_l = logistic(laecg_effects$coefficients['(Intercept)',1] - 1.96*laecg_effects$coefficients['(Intercept)',2])
-
-GD_acc   = logistic(laecg_effects$coefficients['(Intercept)',1] + laecg_effects$coefficients['HCPGPG',1])
-GD_acc_u = logistic(laecg_effects$coefficients['(Intercept)',1] + laecg_effects$coefficients['HCPGPG',1] + 1.96*laecg_effects$coefficients['HCPGPG',2])
-GD_acc_l = logistic(laecg_effects$coefficients['(Intercept)',1] + laecg_effects$coefficients['HCPGPG',1] - 1.96*laecg_effects$coefficients['HCPGPG',2])
-
-message('Acceptance rate for HC, for GD at neutral category and given all other predictors are 0:')
-message(HC_acc)
-message(GD_acc)
+  
 HC_gain = laecg_effects$coefficients['gain',1]
 GD_gain = HC_gain + laecg_effects$coefficients['gain:HCPGPG',1]
 HC_loss = laecg_effects$coefficients['loss',1]
-GD_loss = HC_loss + laecg_effects$coefficients['loss:HCPGPG',1]
+GD_loss = HC_loss + laecg_effects$coefficients['loss:HCPGPG',1]  
 
-# sensitivity to gain, loss, LA
 message('Sensitivity to gain, loss for HC, GD was: ')
 message('gain')
 message(HC_gain)
@@ -134,79 +209,50 @@ message('Loss aversion for HC, GD was according to fixed effects of gain and los
 message(-HC_loss/HC_gain)
 message(-GD_loss/GD_gain)
 
-# second level analysis for LA (weird results!!!)
-cur_df      = coef(modlae_cg)$subject
-cur_df$HCGD = as.factor(agk.recode(row.names(cur_df),dat_match$VPPG,as.character(dat_match$HCPG)))
-for (cc in 1:length(cur_df[,1])) {
-  if (cur_df$HCGD[cc] == 'PG') {
-    message('A GD')
-    cur_df$gain[cc] = cur_df$gain[cc] + cur_df$`gain:HCPGPG`[cc] 
-    cur_df$loss[cc] = cur_df$loss[cc] + cur_df$`loss:HCPGPG`[cc] 
-  }
+print (anova(modla_00,modla_01,modla_0g,modla_cg,modla_cgi))
+print(summary(modla_cg))
+
+if (which_study == 'MRI') {
+  # LA effects based on model with ED
+  print (anova(modlae_00,modlae_0g))
 }
-cur_df$LA   = -cur_df$loss/cur_df$gain
-lmp_mod_LA   = lmp(LA ~ HCGD,data = cur_df,Ca = 0.000000001,nCycle = 1,maxIter =1000000)
-print(lmp_mod_LA)
-print(summary(lmp_mod_LA))
-lmp_mod_gain = lmp(gain ~ HCGD,data = cur_df,Ca = 0.000000001,nCycle = 1,maxIter =1000000)
-print(lmp_mod_gain)
-print(summary(lmp_mod_gain))
-lmp_mod_loss = lmp(loss ~ HCGD,data = cur_df,Ca = 0.000000001,nCycle = 1,maxIter =1000000)
-print(lmp_mod_loss)
-print(summary(lmp_mod_loss))
 
-# acceptance rate per category controlled for neutral
-HC_acc_gam = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1]) - HC_acc
-HC_acc_neg = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1]) - HC_acc 
-HC_acc_pos = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1]) - HC_acc
+if (which_study == 'MRI') {
+  # LA effects overall; no group effect
+  laecg_effects = summary(modla_01)
+  
+  HC_gain = laecg_effects$coefficients['gain',1]
+  HC_loss = laecg_effects$coefficients['loss',1]
+  
+  message('Sensitivity to gain, loss for all subs: ')
+  message('gain')
+  message(HC_gain)
+  message('loss')
+  message(HC_loss)
+  message('Loss aversion for all subs according to fixed effects of gain and loss: ')
+  message(-HC_loss/HC_gain)
+}
 
-HC_acc_gam_u = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] + 1.96*laecg_effects$coefficients['catgambling',2]) - HC_acc
-HC_acc_neg_u = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] + 1.96*laecg_effects$coefficients['catnegative',2]) - HC_acc 
-HC_acc_pos_u = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] + 1.96*laecg_effects$coefficients['catpositive',2]) - HC_acc
-
-HC_acc_gam_l = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] - 1.96*laecg_effects$coefficients['catgambling',2]) - HC_acc
-HC_acc_neg_l = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] - 1.96*laecg_effects$coefficients['catnegative',2]) - HC_acc 
-HC_acc_pos_l = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] - 1.96*laecg_effects$coefficients['catpositive',2]) - HC_acc
-
-GD_acc_gam = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catgambling',1]) - GD_acc
-GD_acc_neg = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catnegative',1]) - GD_acc
-GD_acc_pos = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catpositive',1]) - GD_acc
-
-GD_acc_gam_u = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catgambling',1] + 1.96*laecg_effects$coefficients['HCPGPG:catgambling',2]) - GD_acc
-GD_acc_neg_u = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catnegative',1] + 1.96*laecg_effects$coefficients['HCPGPG:catnegative',2]) - GD_acc
-GD_acc_pos_u = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catpositive',1] + 1.96*laecg_effects$coefficients['HCPGPG:catpositive',2]) - GD_acc
-
-GD_acc_gam_l = logistic(laecg_effects$coefficients['catgambling',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catgambling',1] - 1.96*laecg_effects$coefficients['HCPGPG:catgambling',2]) - GD_acc
-GD_acc_neg_l = logistic(laecg_effects$coefficients['catnegative',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catnegative',1] - 1.96*laecg_effects$coefficients['HCPGPG:catnegative',2]) - GD_acc
-GD_acc_pos_l = logistic(laecg_effects$coefficients['catpositive',1] + laecg_effects$coefficients['(Intercept)',1] +laecg_effects$coefficients['HCPGPG:catpositive',1] - 1.96*laecg_effects$coefficients['HCPGPG:catpositive',2]) - GD_acc
-
-
-# make a graph of this
-HC_gam = c(HC_acc_gam,HC_acc_gam_l,HC_acc_gam_u,'gambling','HC')
-HC_neg = c(HC_acc_neg,HC_acc_neg_l,HC_acc_neg_u,'negative','HC')
-HC_pos = c(HC_acc_pos,HC_acc_pos_l,HC_acc_pos_u,'positive','HC')
-
-GD_gam = c(GD_acc_gam,GD_acc_gam_l,GD_acc_gam_u,'gambling','GD')
-GD_neg = c(GD_acc_neg,GD_acc_neg_l,GD_acc_neg_u,'negative','GD')
-GD_pos = c(GD_acc_pos,GD_acc_pos_l,GD_acc_pos_u,'positive','GD')
-
-cur_mat = as.data.frame(rbind(HC_gam,HC_neg,HC_pos,GD_gam,GD_neg,GD_pos))
-names(cur_mat) = c('delta_percentage','CI_lower','CI_upper','category','group')
-cur_fun= function(x) {return(as.numeric(as.character(x)))}
-cur_mat[1:3]  = lapply(cur_mat[1:3],FUN = cur_fun)
-#cur_mat = melt(cur_mat,id.vars = c('category','group'))
-
-mRat  = ggplot(cur_mat, aes(category, delta_percentage,fill=group))
-mRat  = mRat + labs(x='category', y=paste('shift in acceptance rate (',0.95*100,'% CI)'))
-mRat  = mRat + ggtitle("Shift in mean acceptance across categories")
-mRat  = mRat + geom_bar(position="dodge", stat="identity")
-dodge = position_dodge(width=0.9)
-mRat  = mRat + geom_bar(position=dodge, stat="identity")
-mRat  = mRat + geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), position=dodge, width=0.25) + theme_bw()
-mRat  = mRat + theme(axis.text=element_text(size=18),
-                     axis.title=element_text(size=20,face="bold")) + theme(plot.title = element_text(size=22)) 
-mRat  = mRat +  theme(legend.title = element_text(size=18)) +  theme(legend.text = element_text(size=15))
-print(mRat)
+if (which_study == 'MRI') {
+  # LA effects overall; no group effect
+  laecg_effects = summary(modlae_cg)
+  
+  HC_gain = laecg_effects$coefficients['gain',1]
+  GD_gain = HC_gain + laecg_effects$coefficients['gain:HCPGPG',1]
+  HC_loss = laecg_effects$coefficients['loss',1]
+  GD_loss = HC_loss + laecg_effects$coefficients['loss:HCPGPG',1]  
+  
+  message('Sensitivity to gain, loss for HC, GD was: ')
+  message('gain')
+  message(HC_gain)
+  message(GD_gain)
+  message('loss')
+  message(HC_loss)
+  message(GD_loss)
+  message('Loss aversion for HC, GD was according to fixed effects of gain and loss: ')
+  message(-HC_loss/HC_gain)
+  message(-GD_loss/GD_gain)
+}
 
 # acceptance rate only between group
 mod_accnc        = aggregate(as.numeric(as.character(data_pdt$accept_reject)),by=list(data_pdt$subject), FUN=mean.rmna)
@@ -216,20 +262,14 @@ mod_accnc        = aggregate(mod_accnc$mean_acceptance,by=list(mod_accnc$Group),
 mod_accnc        = data.frame(mod_accnc[[1]],mod_accnc[[2]])
 names(mod_accnc) = c('Group','mean_acceptance','ci_0025','ci_0975')
 mod_accnc$Group  = agk.recode.c(mod_accnc$Group,'PG','GD')
+message('Acceptance rate per group descriptively across all categories.')
+print(mod_accnc)
 
-# stats
-anova(moda_00,moda_01,moda_02) # effect of category and group
+message('effect of category and group')
+print(anova(moda_00,moda_01,moda_02)) # effect of category and group
 
-# stats without cat (simple acceptance rate difference between groups)
-anova(moda_00,moda_01b)
-
-## loss aversion (la) overall and group comparison ============================
-# stats glmer
-anova(modla_00,modla_01,modla_0g,modla_cg,modla_cgi) # all models
-anova(modla_00,modla_01,modla_0g)                    # only loss aversion relevant
-anova(modlae_c0,modlae_cg)                           # simple comparison group using the laec model; for MRI paper
-anova(modlae_00,modlae_0g)                           # simple comparison group using the lae model; for MRI paper
-summary(modlae_cg)
+message('stats without cat (simple acceptance rate difference between groups)')
+print(anova(moda_00,moda_01b))
 
 ## plot loss aversion between groups ==========================================
 # bootstrap the CIs

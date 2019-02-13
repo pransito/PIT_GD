@@ -21,7 +21,7 @@ data_release             = 'none'
 import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
-import_from_scratch      = 0
+import_from_scratch      = 1
 # do any matching or non at all?
 do_matching_MRI          = 1
 # do any matching or non at all?

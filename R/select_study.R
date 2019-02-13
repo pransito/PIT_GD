@@ -197,6 +197,13 @@ if(sum(is.na(data_pdt$cat))) {
   stop('There are NAs in the data_pdt$cat variable!')
 }
 
+## functions ==================================================================
+# Create the function.
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
 ## VARIABLE TRANSFORMATIONS ===================================================
 if (do_data_inv == 0) {
   data_pdt_finCat$valence_log       = get.log(data_pdt_finCat$valence)

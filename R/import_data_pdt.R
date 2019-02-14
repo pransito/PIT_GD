@@ -21,7 +21,7 @@ data_release             = 'none'
 import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
-import_from_scratch      = 1
+import_from_scratch      = 0
 # do any matching or non at all?
 do_matching_MRI          = 1
 # do any matching or non at all?
@@ -270,7 +270,7 @@ if (import_existing_imp == 0) {
     # INTERIM
     data_pdt        = (data_pdt[,grep('.x',names(data_pdt),fixed = T,invert=T)])
     names(data_pdt) = gsub('.y','',names(data_pdt),fixed=T)
-    data_pdt_bcp = data_pdt
+    data_pdt_bcp    = data_pdt
     
     # save the result of import from scratch
     setwd(path_dat)

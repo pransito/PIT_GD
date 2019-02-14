@@ -27,9 +27,9 @@ data_pdt_inv = data_pdt
 
 ## PARAMETER SETTINGS =========================================================
 # which study to look at (Cohorts)? ===========================================
-#which_study = "MRI"
+which_study = "MRI"
 #which_study = "MRI_and_POSTPILOT" # lumping those together (for KFG prediction e.g.)
-which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
+#which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
 #which_study = "TEST" # when K.Brehm used POSTPILOT and simulated facial expression (8888) or not (7777)
 #which_study = "Prestudy" # HC groups before core behav study; for image adequacy (PhysioPilot)
 #which_study = "sanity"
@@ -137,6 +137,9 @@ if ((length(grep(which_study, pattern = "HC")) != 0) & (length(grep(which_study,
   data_pdt = subset(data_pdt,HCPG == "PG")
 }
 
+## REPORT on MISSINGS =========================================================
+
+
 ## DATA_INV ===================================================================
 # prepare a data_pdt_inv df
 # this df uses all data EXCEPT the data in which_study
@@ -198,8 +201,8 @@ if(sum(is.na(data_pdt$cat))) {
 }
 
 ## functions ==================================================================
-# Create the function.
 getmode <- function(v) {
+  # mode function
   uniqv <- unique(v)
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
@@ -239,8 +242,15 @@ if (which_study == "POSTPILOT_HCPG" | which_study == "POSTPILOT_HC" |
 # or better yet, align
 dat_match = dat_match[dat_match$VPPG %in% data_pdt$subject,]
 
-## ADD CATEGORY VARIABLES FOR laCh ============================================
+## REPORTING ON MISSINGS AND THEN DROPPING ALL MISSINGS =======================
+missing_trials = xtabs(is.na(data_pdt$accept_reject) ~ data_pdt$subject + data_pdt$HCPG)
+missing_trials = melt(missing_trials)
+names(missing_trials) = c('subject','HCPG','num_missing')
+print(summary(lm(num_missing ~ HCPG,missing_trials)))
+
 data_pdt = data_pdt[!is.na(data_pdt$accept_reject),]
+
+## ADD CATEGORY VARIABLES FOR laCh ============================================
 all_subs = unique(data_pdt$subject)
 enh_dpdt = list()
 
@@ -277,6 +287,8 @@ if (which_study == 'MRI') {
 # saving this result
 data_pdt_bcp_study_selected  = data_pdt
 dat_match_bcp_study_selected = dat_match
+
+
 
 ## initialize for all analyses ================================================
 ## initialization settings [DEFAULT, DO NOT CHANGE] ===========================

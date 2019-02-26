@@ -285,6 +285,9 @@ if (import_existing_imp == 0) {
   # dropping subjects due to always accept or reject
   disp("checking if have to exclude due to always accepted or rejected")
   
+  # clean the factor stim
+  data_pdt$stim = as.factor(as.character(data_pdt$stim))
+  
   ## subjects that ALWAYS ACCEPT or REJECT
   # ignores subs that have only NAs
   often_acc = c()

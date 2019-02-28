@@ -90,7 +90,24 @@ cur_summary_function = function(x) median(x, na.rm=TRUE)
 f = function(x) {
   tmp <- t.test(x)
   return(as.matrix(c(tmp$p.value,mean(x,na.rm = T))))
+}
+
+agk.load.ifnot.install <- function(package_name){
+  if(require(package_name,character.only = T,quietly = T)){
+    print(paste (package_name,"is loaded correctly"))
+  } else {
+    print(paste("trying to install", package_name))
+    install.packages(pkgs = c(package_name))
+    if(require(package_name,character.only = T)){
+      print(paste(package_name,"installed and loaded"))
+    } else {
+      stop(paste("could not install",package_name))
+    }
   }
+}
+
+## PACKAGES ===================================================================
+agk.load.ifnot.install('reshape2')
 
 ## SUBSETTING DATA ============================================================
 data_pdt$Cohort[data_pdt$Cohort ==  "PhysioIAPS"] = "sanity"

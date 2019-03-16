@@ -16,7 +16,7 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 ## parameters that may be set
 # export data to PIT GD MRI or PIT GD behav release
 # none, MRI, behav
-data_release             = 'none'
+data_release             = 'behav'
 # use last exisiting import
 import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)
@@ -1111,10 +1111,10 @@ agk.select.aggregation = function(data_pdt,data_release) {
 setwd(path_ana)
 save.image()
 
-# selecting aggregation according to release
-data_pdt = agk.select.aggregation (data_pdt,data_release)
-
 if (data_release == 'behav' | data_release == 'MRI') {
+  # selecting aggregation according to release
+  data_pdt = agk.select.aggregation(data_pdt,data_release)
+  
   ## save also to release repository [but discard the cr_agg_pp_r_MRI data, and pp data]
   to_discard = c('zygo_','corr_','eda_','SCR','cozy_')
   for (dd in 1:length(to_discard)) {
@@ -1134,6 +1134,11 @@ if (data_release == 'behav' | data_release == 'MRI') {
     #rm(list = c('dat_match_MRIum','data_pdt_MRIum','data_pdt_PPum','data_pdt_PPum'))
     setwd('PIT_GD_MRI_release/R/analyses')
   }
+  
+  # correct the backup
+  data_pdt_bcp = data_pdt
+  
+  # final save
   save.image()
 } else if (data_release == 'none') {
   # do nothing

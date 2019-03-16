@@ -12,7 +12,7 @@ pit_vars$ac_Intercept = NULL
 la_vars               = fm$la_LA
 la_vars               = la_vars[c('gain','loss','LA')]
 names(la_vars)        = paste0('la_',names(la_vars))
-stopifnot(which_study == "MRI_and_POSTPILOT")
+#stopifnot(which_study == "MRI_and_POSTPILOT")
 
 
 # merging

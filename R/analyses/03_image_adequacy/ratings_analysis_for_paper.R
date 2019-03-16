@@ -31,7 +31,7 @@ rm(list      = c('new_data_pdt'))
 data_pdt_ra_bcp = data_pdt
 
 ## PARAMS =====================================================================
-which_group           = 'PG'
+which_group           = 'both'
 pic_value_vars        = c("arousal","dominance","valence","imageRating1s",
                           "imageRating2s","imageRating3s","imageRating4s")
 pic_value_vars_labels = c('Valence', 'Arousal','Dominance', "Elicits_Craving",

@@ -16,7 +16,7 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 ## parameters that may be set
 # export data to PIT GD MRI or PIT GD behav release
 # none, MRI, behav
-data_release             = 'behav'
+data_release             = 'none'
 # use last exisiting import
 import_existing_imp      = 1
 # import from scratch (choice data, ratings, etc.; takes a bit)

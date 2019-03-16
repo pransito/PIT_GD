@@ -43,6 +43,15 @@ doFitGlmer = 1
 # put in the original fixed effect estimation
 put_in_original_fe = 1
 
+# save the df
+data_pdt_cat = data_pdt
+
+# # get rid of neutral etc.
+# data_pdt = data_pdt[data_pdt$cat != 'neutral',]
+# data_pdt = data_pdt[data_pdt$cat != 'positive',]
+# data_pdt = data_pdt[data_pdt$cat != 'negative',]
+# data_pdt$cat = droplevels(data_pdt$cat)
+
 ## glmer models acceptance rate ===============================================
 if (doFitGlmer) {
   moda_00  = glmer(accept_reject ~ 1 + (1|subject) + (1|stim) + (1|cat),data = data_pdt,family = 'binomial')
@@ -104,6 +113,23 @@ if (which_study == 'POSTPILOT_HCPG') {
   print(mRat)
 }
 
+## acceptance rate and under different cue conditions indivd. #################
+mod_acc             = aggregate(as.numeric(as.character(data_pdt$accept_reject)),by=list(data_pdt$subject,data_pdt$cat), FUN=mean.rmna)
+names(mod_acc)      = c('subject','category','mean_acceptance')
+mod_acc$Group       = agk.recode.c(mod_acc$subject,dat_match$VPPG,dat_match$HCPG)
+mod_acc_agg         = aggregate(mod_acc$mean_acceptance,by=list(mod_acc$Group,mod_acc$cat),FUN=mean)
+names(mod_acc_agg)  = c('Group','category','mean_acceptance')
+
+
+ggplot(id, aes(x = year, y = health_exp_total, group = country, color = continent)) +
+  geom_line()
+
+mRat  = ggplot(mod_acc, aes(category, mean_acceptance,color=Group)) 
+mRat  = mRat + geom_line(aes(group = subject), alpha = .3)
+mRat  = mRat + labs(x='category', y=paste('Mean of acceptance'))
+mRat  = mRat + geom_line(data = mod_acc_agg, alpha = .8, size = 4, aes(group = Group))
+mRat  = mRat +  theme_bw()
+mRat
 
 # acceptance rate based on laec_group model (MRI study) #######################
 # general acceptance rate difference between group (using the neutral cat)

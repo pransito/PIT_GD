@@ -92,43 +92,47 @@ message(' ')
 message('... percent subjects.')
 
 ## acceptance rate and under different cue conditions #########################
-if (which_study == 'POSTPILOT_HCPG') {
-  # acceptance rate graph, descriptives (CIs over subjects per category)
-  # acceptance rate not based on lmer model
-  mod_acc        = aggregate(as.numeric(as.character(data_pdt$accept_reject)),by=list(data_pdt$subject,data_pdt$cat), FUN=mean.rmna)
-  names(mod_acc) = c('subject','category','mean_acceptance')
-  mod_acc$Group  = agk.recode.c(mod_acc$subject,dat_match$VPPG,dat_match$HCPG)
-  mod_acc        = aggregate(mod_acc$mean_acceptance,by=list(mod_acc$Group,mod_acc$cat),FUN=agk.boot.ci,R=2000,lower=0.025,upper=0.975,cur_fun=mean)
-  mod_acc        = data.frame(mod_acc[[1]], mod_acc[[2]],mod_acc[[3]])
-  names(mod_acc) = c('Group','category','mean_acceptance','ci_0025','ci_0975')
-  mod_acc$Group  = agk.recode.c(mod_acc$Group,'PG','GD')
-  
-  mRat  = ggplot(mod_acc, aes(category, mean_acceptance,fill=Group))
-  mRat  = mRat + labs(x='category', y=paste('Mean of acceptance (',0.95*100,'% CI, bootstrapped)'))
-  mRat  = mRat + ggtitle("Mean acceptance across categories")
-  mRat  = mRat + geom_bar(position="dodge", stat="identity")
-  dodge = position_dodge(width=0.9)
-  mRat  = mRat + geom_bar(position=dodge, stat="identity")
-  mRat  = mRat + geom_errorbar(aes(ymin = ci_0025, ymax = ci_0975), position=dodge, width=0.25) + theme_bw()
-  print(mRat)
-}
+# acceptance rate graph, descriptives (CIs over subjects per category)
+# acceptance rate not based on lmer model
+mod_acc        = aggregate(as.numeric(as.character(data_pdt$accept_reject)),by=list(data_pdt$subject,data_pdt$cat), FUN=mean.rmna)
+names(mod_acc) = c('subject','category','mean_acceptance')
+mod_acc$Group  = agk.recode.c(mod_acc$subject,dat_match$VPPG,dat_match$HCPG)
+mod_acc        = aggregate(mod_acc$mean_acceptance,by=list(mod_acc$Group,mod_acc$cat),FUN=agk.boot.ci,R=2000,lower=0.025,upper=0.975,cur_fun=mean)
+mod_acc        = data.frame(mod_acc[[1]], mod_acc[[2]],mod_acc[[3]])
+names(mod_acc) = c('Group','category','mean_acceptance','ci_0025','ci_0975')
+mod_acc$Group  = agk.recode.c(mod_acc$Group,'PG','GD')
+
+mRat  = ggplot(mod_acc, aes(category, mean_acceptance,fill=Group))
+mRat  = mRat + labs(x='category', y=paste('Mean of acceptance (',0.95*100,'% CI, bootstrapped)'))
+mRat  = mRat + ggtitle("Mean acceptance across categories")
+mRat  = mRat + geom_bar(position="dodge", stat="identity")
+dodge = position_dodge(width=0.9)
+mRat  = mRat + geom_bar(position=dodge, stat="identity")
+mRat  = mRat + geom_errorbar(aes(ymin = ci_0025, ymax = ci_0975), position=dodge, width=0.25) + theme_bw()
+mRat  = agk.make.plot.text.bigger(mRat)
+print(mRat)
+
+# effect of cat*HCPG
+print(anova(moda_01,moda_02))
+print(summary(moda_02))
+
+
 
 ## acceptance rate and under different cue conditions indivd. #################
 mod_acc             = aggregate(as.numeric(as.character(data_pdt$accept_reject)),by=list(data_pdt$subject,data_pdt$cat), FUN=mean.rmna)
 names(mod_acc)      = c('subject','category','mean_acceptance')
 mod_acc$Group       = agk.recode.c(mod_acc$subject,dat_match$VPPG,dat_match$HCPG)
+mod_acc$Group       = agk.recode.c(mod_acc$Group,'PG','GD')
 mod_acc_agg         = aggregate(mod_acc$mean_acceptance,by=list(mod_acc$Group,mod_acc$cat),FUN=mean)
 names(mod_acc_agg)  = c('Group','category','mean_acceptance')
-
-
-ggplot(id, aes(x = year, y = health_exp_total, group = country, color = continent)) +
-  geom_line()
 
 mRat  = ggplot(mod_acc, aes(category, mean_acceptance,color=Group)) 
 mRat  = mRat + geom_line(aes(group = subject), alpha = .3)
 mRat  = mRat + labs(x='category', y=paste('Mean of acceptance'))
-mRat  = mRat + geom_line(data = mod_acc_agg, alpha = .8, size = 4, aes(group = Group))
+mRat  = mRat + geom_line(data = mod_acc_agg, alpha = .9, size = 3, aes(group = Group))
+mRat  = mRat + ggtitle("Mean acceptance across categories:\nindividual data and grand means by group")
 mRat  = mRat +  theme_bw()
+mRat  = agk.make.plot.text.bigger(mRat)
 mRat
 
 # acceptance rate based on laec_group model (MRI study) #######################
@@ -202,14 +206,12 @@ if (which_study == 'MRI') {
   
   mRat  = ggplot(cur_mat, aes(category, delta_percentage,fill=group))
   mRat  = mRat + labs(x='category', y=paste('shift in acceptance rate (',0.95*100,'% CI)'))
-  mRat  = mRat + ggtitle("Shift in mean acceptance across categories")
+  mRat  = mRat + ggtitle("Shift in mean acceptance across categories\n(relative to neutral, based on laecg model)")
   mRat  = mRat + geom_bar(position="dodge", stat="identity")
   dodge = position_dodge(width=0.9)
   mRat  = mRat + geom_bar(position=dodge, stat="identity")
   mRat  = mRat + geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), position=dodge, width=0.25) + theme_bw()
-  mRat  = mRat + theme(axis.text=element_text(size=18),
-                       axis.title=element_text(size=20,face="bold")) + theme(plot.title = element_text(size=22)) 
-  mRat  = mRat +  theme(legend.title = element_text(size=18)) +  theme(legend.text = element_text(size=15))
+  mRat  = agk.make.plot.text.bigger(mRat)
   print(mRat)
   
   print(anova(modlae_c0,modlae_cg))

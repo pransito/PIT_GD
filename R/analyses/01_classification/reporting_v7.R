@@ -294,11 +294,11 @@ if (report_CV_p) {
   cur_dat$value          = NULL
   cur_dat$algorithm      = cur_dat$classifier
   cur_dat$classifier     = cur_dat$variable  
-  cur_dat$classifier     = agk.recode.c(cur_dat$classifier,c('full_classifier','null_classifier'),c('full','null'))
+  cur_dat$classifier     = agk.recode.c(cur_dat$classifier,c('full_classifier','null_classifier'),c('full','baseline'))
   
   # plot
   p = ggplot(cur_dat,aes(x=AUC_ROC, fill=classifier)) + geom_density(alpha=0.25)
-  p = p + ggtitle('AUC densities for elastic net classifier compared to null-classifier')
+  p = p + ggtitle('AUC densities for elastic net classifier compared to baseline classifier')
   #p = p + facet_grid(algorithm ~ .)
   p = p + geom_vline(aes(xintercept = mean(auc)),colour = 'green',size= 1.5)
   p = p + theme_bw()
@@ -307,6 +307,7 @@ if (report_CV_p) {
   p = p + theme(plot.title = element_text(size=22))
   p = p + theme(legend.text = element_text(size=18))
   p = p + theme(legend.title= element_text(size=18))
+  p = p + xlab('AUC ROC')
   print(p)
 }
 
@@ -426,9 +427,11 @@ p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
                       width = 0) + ylab("mean (95% CI)\n")
 
 p <- p + ggtitle("Estimated regression weights of winning model")
-p = p + theme(text = element_text(size=25),
-              axis.text.x = element_text(angle=45, hjust=1)) 
+
+#p = p + theme(text = element_text(size=25),
+#              axis.text.x = element_text(angle=45, hjust=1)) 
 p = p + xlab("regression weights")
+p = p + theme(text = element_text(face='bold'))
 print(p)
 
 ## HAUFE TRANFORMATION OF CLASSIFIER ==========================================
@@ -472,14 +475,18 @@ if (which_study == 'MRI') {
   ci_res_red = ci_res
   
   p = ggplot(data = ci_res_red, aes(coef,mean))
-  p = p+geom_bar(stat="identity")
+  p = p+geom_point(stat="identity")
+  p = p + geom_hline(yintercept = 0)
+  p = p + coord_flip()
   p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
-                        width = 0) + ylab("mean (95% CI over CV rounds)\n\n\n")
+                        width = 0) + ylab("mean (95% quantile over CV rounds)\n\n\n")
   
-  p <- p + ggtitle("Estimated regression weights with CIs") + theme_bw()
+  p <- p + ggtitle("Estimated regression weights with 95% quantiles") + theme_bw()
   p = p + theme(text = element_text(size=15),
                 axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
-  p = p + facet_wrap(~ grouping, scales = "free_x",nrow=3,ncol=2)
+  p = p + facet_grid(grouping ~ . , scales = "free", space = "free", drop = T) + theme(strip.text.y = element_text(angle = 0))
+  p = p + xlab('predictor')
+  p = p + theme(text = element_text(face='bold', size = 15))
   print(p)
   
   # check how many betas sig
@@ -509,20 +516,59 @@ if (which_study == 'MRI') {
   
   # plot
   p = ggplot(data = all_As, aes(coef,mean))
-  p = p+geom_bar(stat="identity")
-  p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
-                        width = 0) + ylab("mean (95% CI over CV rounds)\n\n\n")
+  p = p+geom_point(stat="identity")
+  p = p + geom_hline(yintercept = 0)
+  p = p + coord_flip()
+  p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.2, color=cbbPalette[4],
+                        width = 0) + ylab("mean (95% quantile over CV rounds)\n\n\n")
   
-  p <- p + ggtitle("Estimated predictor importance with 95% quantiles") + theme_bw()
-  p = p + theme(text = element_text(size=15),
-                axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
-  p = p + facet_wrap(~ grouping, scales = "free_x",nrow=3,ncol=2)
+  p = p + ggtitle("Estimated predictor importance with 95% quantiles") + theme_bw()
+  p = p + facet_grid(grouping ~ . , scales = "free", space = "free", drop = T) + theme(strip.text.y = element_text(angle = 0))
+  p = p + xlab('predictor')
+  p = p + theme(text = element_text(face='bold', size = 15))
+
   print(p)
   
   # the top betas
   all_As_ordered = all_As[order(abs(all_As$mean),decreasing = T),]
   message('The strongest betas are:')
   print(all_As_ordered[1:4,])
+  
+  # add the same plot but instead we use t-values per variable (HC vs. GD)
+  X           = feature_clusters[[2]]
+  X$edu_years = as.numeric(agk.recode.c(row.names(X),dat_match$VPPG,dat_match$edu_years))
+  X$HCPG      = NULL
+  cur_grp     = as.factor(agk.recode.c(row.names(X),dat_match$VPPG,dat_match$HCPG))
+  get_t = function(x, cur_grp) {
+    cur_res = ttest.group(x,cur_grp)
+    return(c(cur_res$statistic,cur_res$p.value<0.05))
+  }
+  all_t      = data.frame(t(as.data.frame(lapply(X,FUN = get_t, cur_grp = cur_grp))))
+  all_t$coef = row.names(all_t)
+  
+  # shorter names and grouping
+  all_t     = agk.mri.shorter.and.grouped.names(all_t)
+  all_t     = merge(all_t,all_As)
+  all_t$t   = -all_t$t
+  all_t$sig_t = factor(all_t$V2,levels = c(0,1),labels = c('sig','not sig.')) 
+  
+  # plot
+  p = ggplot(data = all_t, aes(coef,t,fill=sig_t))
+  p = p+geom_bar(stat="identity")
+  p = p + geom_hline(yintercept = 1.96)
+  p = p + geom_hline(yintercept = -1.96)
+  p = p + coord_flip()
+  p = p + ggtitle("Inspection of predictor importance and t-tests") + theme_bw()
+  p = p + facet_grid(grouping ~ . , scales = "free", space = "free", drop = T) + theme(strip.text.y = element_text(angle = 0))
+  p = p + xlab('predictor')
+  p = p + theme(text = element_text(face='bold', size = 15))
+  p = p + geom_point(aes(coef,mean))
+  p = p + geom_hline(yintercept = 0)
+  p = p + geom_errorbar(aes(ymin=lower,ymax=upper),size=1.2, color=cbbPalette[4],
+                        width = 0) + ylab("t-value / mean with 95% quantile over CV rounds\n\n\n")
+  
+  print(p)
+  
 } else if (which_study == 'POSTPILOT_HCPG') {
   # display the Haufe transformed A
   X              = featmod_coefs[[winning_mod]]
@@ -537,11 +583,13 @@ if (which_study == 'MRI') {
   p = ggplot(data = all_As, aes(coef,mean))
   p = p+geom_bar(stat="identity")
   p = p + geom_errorbar(aes(ymin=lower,ymax=upper), size=1.3, color=cbbPalette[4],
-                        width = 0) + ylab("mean (95% CI over CV rounds)\n\n\n")
+                        width = 0) + ylab("mean (95% quantile over CV rounds)\n\n\n")
   
   p <- p + ggtitle("Estimated predictor importance with 95% quantiles") + theme_bw()
-  p = p + theme(text = element_text(size=15),
-                axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
+  #p = p + theme(text = element_text(size=15),
+  #              axis.text.x = element_text(angle=45, hjust=1,face='bold')) 
+  p = p + theme(text = element_text(face='bold', size = 15))
+  p = p + xlab('predictor')
   print(p)
   
   # the top betas

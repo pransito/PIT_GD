@@ -41,6 +41,9 @@ agk.group.pred.init = function() {
   }
   
   if (which_study == 'MRI' & add_cr_pp_ma) {
+    # collect correlations left-right
+    corr_MRI_LR = list()
+    
     #cr_agg_pp = cr_agg_pp_readin
     cr_agg_pp = cr_agg_pp_r_MRI
     # clean out subject variable
@@ -59,12 +62,15 @@ agk.group.pred.init = function() {
       cur_name                     = all_cr_names_L[nn]
       cur_R                        = gsub('_Left_','_Right_',cur_name)
       cr_agg_pp_m[[cur_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R]]) /2
+      corr_MRI_LR[[nn]]            = cor.test(cr_agg_pp_m[[cur_name]],cr_agg_pp_m[[cur_R]])
       cr_agg_pp_m[cur_R]           = NULL
       # get the name we need to change
       cur_ind                     = which(names(cr_agg_pp_m) == cur_name)
       names(cr_agg_pp_m)[cur_ind] = gsub('_Left_','_LR_',names(cr_agg_pp_m[cur_name]))
     }
     # SS gPPI PIT variables; mean of L and R (so mean of four variables)
+    corr_MRI_LR_2          = list()
+    ccount                 = 0
     all_gppi_names         = names(cr_agg_pp_m)[grep('SS__PPI_',names(cr_agg_pp_m))]
     all_gppi_names_L       = all_gppi_names[grep('_PPI_L',all_gppi_names)]
     all_gppi_names_L_L_tar = all_gppi_names[grep('_ROI_L',all_gppi_names_L)]
@@ -79,6 +85,12 @@ agk.group.pred.init = function() {
       new_name                     = gsub('_ROI_L_','_ROI_LR_',new_name)
       cr_agg_pp_m[[new_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R_source]] + cr_agg_pp_m[[cur_R_source_L_tar]] + cr_agg_pp_m[[cur_L_source_L_tar]])/4
       
+      # correlations left right
+      ccount = ccount + 1
+      corr_MRI_LR_2[[ccount]] = cor.test(cr_agg_pp_m[[cur_name]],cr_agg_pp_m[[cur_R_source]])
+      ccount = ccount + 1
+      corr_MRI_LR_2[[ccount]] = cor.test(cr_agg_pp_m[[cur_R_source_L_tar]], cr_agg_pp_m[[cur_L_source_L_tar]])
+      
       # delete unneeded variables
       cr_agg_pp_m[cur_name]            = NULL
       cr_agg_pp_m[cur_R_source]        = NULL
@@ -90,11 +102,34 @@ agk.group.pred.init = function() {
       cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG)/2
       cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG)/2
       cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG)/2
+      # cor left right
+      ccount = ccount + 1
+      corr_MRI_LR_2[[ccount]] = cor.test(cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG,cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXgam_ROI_R_MOrG)
+      ccount = ccount + 1
+      corr_MRI_LR_2[[ccount]] = cor.test(cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG,cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXneg_ROI_R_MOrG)
+      ccount = ccount + 1
+      corr_MRI_LR_2[[ccount]] = cor.test(cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG,cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxaccXpos_ROI_R_MOrG)
+      
+      
     } else if (fmri_extr == 'val') {
+      
       cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG)/2
       cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG)/2
       cr_agg_pp_m$SS__PPI_LR_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG  = (cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG + cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXpos_ROI_R_MOrG)/2
+      # cor L R
+      corr_MRI_LR_2[[ccount]] = cor.test(cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG,cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXgam_ROI_R_MOrG)
+      ccount = ccount + 1
+      corr_MRI_LR_2[[ccount]] = cor.test(cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG,cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG)
+      ccount = ccount + 1
+      corr_MRI_LR_2[[ccount]] = cor.test(cr_agg_pp_m$SS__PPI_L_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG,cr_agg_pp_m$SS__PPI_R_Amy_noCov_PPI_PicGamOnxvalXneg_ROI_R_MOrG)
     }
+    
+    # report on correlation L R
+    corr_MRI_LR = c(corr_MRI_LR,corr_MRI_LR_2)
+    get_p = function(x) {return(x$p.value)}
+    get_r = function(x) {return(x$estimate)}
+    corr_MRI_LR_r = unlist(lapply(corr_MRI_LR,FUN=get_r))
+    corr_MRI_LR_p = unlist(lapply(corr_MRI_LR,FUN=get_p))
     
     # delete unneeded variables
     cr_agg_pp_m[names(cr_agg_pp_m)[grep('PPI_._',names(cr_agg_pp_m))]] = NULL

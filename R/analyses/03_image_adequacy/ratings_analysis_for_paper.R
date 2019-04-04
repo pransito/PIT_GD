@@ -34,7 +34,7 @@ data_pdt_ra_bcp = data_pdt
 which_group           = 'both'
 pic_value_vars        = c("arousal","dominance","valence","imageRating1s",
                           "imageRating2s","imageRating3s","imageRating4s")
-pic_value_vars_labels = c('Valence', 'Arousal','Dominance', "Elicits_Craving",
+pic_value_vars_labels = c("Arousal","Dominance","Valence", "Elicits_Craving",
                           "Representative_for_Gambles","Representative_for_Negative","Representative_for_Positive")
 cur_control           = lmerControl(optimizer = "nloptwrap", calc.derivs = FALSE)
 
@@ -244,4 +244,4 @@ for (dd in 1:length(pic_value_vars_labels)) {
 }
 
 ## DATA_PDT into initial state ================================================
-data_pdt_ra_bcp = data_pdt
+data_pdt = data_pdt_ra_bcp

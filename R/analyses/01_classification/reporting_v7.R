@@ -550,7 +550,14 @@ if (which_study == 'MRI') {
   all_t     = agk.mri.shorter.and.grouped.names(all_t)
   all_t     = merge(all_t,all_As)
   all_t$t   = -all_t$t
-  all_t$sig_t = factor(all_t$V2,levels = c(0,1),labels = c('sig','not sig.')) 
+  all_t$sig_t = factor(all_t$V2,levels = c(0,1),labels = c('not sig.','sig.')) 
+  
+  # add the coefficients
+  ci_res_shaped = ci_res
+  names(ci_res_shaped)[grep('mean',names(ci_res_shaped))] = paste0('regweight_',names(ci_res_shaped)[grep('mean',names(ci_res_shaped))])
+  names(ci_res_shaped)[grep('lower',names(ci_res_shaped))] = paste0('regweight_',names(ci_res_shaped)[grep('lower',names(ci_res_shaped))])
+  names(ci_res_shaped)[grep('upper',names(ci_res_shaped))] = paste0('regweight_',names(ci_res_shaped)[grep('upper',names(ci_res_shaped))])
+  all_t = merge(all_t,ci_res_shaped)
   
   # plot
   p = ggplot(data = all_t, aes(coef,t,fill=sig_t))
@@ -563,9 +570,10 @@ if (which_study == 'MRI') {
   p = p + xlab('predictor')
   p = p + theme(text = element_text(face='bold', size = 15))
   p = p + geom_point(aes(coef,mean))
+  #p = p + geom_point(aes(coef,regweight_mean), color = 'blue')
   p = p + geom_hline(yintercept = 0)
   p = p + geom_errorbar(aes(ymin=lower,ymax=upper),size=1.2, color=cbbPalette[4],
-                        width = 0) + ylab("t-value / mean with 95% quantile over CV rounds\n\n\n")
+                        width = 0) + ylab("bars: t-values \n points with whiskers: mean predictor importance with 95% quantiles over CV rounds\n\n")
   
   print(p)
   

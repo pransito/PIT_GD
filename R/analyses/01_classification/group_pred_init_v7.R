@@ -61,6 +61,9 @@ agk.group.pred.init = function() {
     for (nn in 1:length(all_cr_names_L)) {
       cur_name                     = all_cr_names_L[nn]
       cur_R                        = gsub('_Left_','_Right_',cur_name)
+      # print(cur_name)
+      # print(cur_R)
+      # print(' ')
       cr_agg_pp_m[[cur_name]]      = (cr_agg_pp_m[[cur_name]] + cr_agg_pp_m[[cur_R]]) /2
       corr_MRI_LR[[nn]]            = cor.test(cr_agg_pp_m[[cur_name]],cr_agg_pp_m[[cur_R]])
       cr_agg_pp_m[cur_R]           = NULL
@@ -79,6 +82,12 @@ agk.group.pred.init = function() {
       cur_R_source                 = gsub('_PPI_L_','_PPI_R_',cur_name)     # right source left target
       cur_R_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_R_source) # right source right target
       cur_L_source_L_tar           = gsub('_ROI_L_','_ROI_R_',cur_name)     # left source right target
+      
+      # print(cur_name)
+      # print(cur_R_source)
+      # print(cur_R_source_L_tar)
+      # print(cur_L_source_L_tar)
+      # print(' ')
       
       # new name and calculation of mean
       new_name                     = gsub('_PPI_L_','_PPI_LR_',cur_name)

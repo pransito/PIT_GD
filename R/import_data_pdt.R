@@ -16,9 +16,9 @@ warning('VPPG0115 still has two P structs. Behav data now only from first. Adapt
 ## parameters that may be set
 # export data to PIT GD MRI or PIT GD behav release
 # none, MRI, behav
-data_release             = 'MRI'
+data_release             = 'none'
 # use last exisiting import
-import_existing_imp      = 1
+import_existing_imp      = 0
 # import from scratch (choice data, ratings, etc.; takes a bit)
 # if 0 will take an older saved version
 import_from_scratch      = 0
@@ -149,7 +149,7 @@ path_ghb = res$path_ghb
 
 ## PATHS ======================================================================
 # paths to VPPG exchange
-base     = file.path(base_gd,'01_Promotion/VPPG/VPPG_Exchange')
+base     = file.path(base_gd,'01_Promotion/10_VPPG/VPPG_Exchange')
 base_bgg = base
 
 # paths for getting data
@@ -381,14 +381,14 @@ if (import_existing_imp == 0) {
   data_quest$FTND=rowSums(FTND_num)
   
   # getting the questionnaires var names
-  questionnaires_vars_names = c()
+  questionnaires_vars_names = list()
   for(ii in 1:ncol(data_quest)) {
     cur_com = comment(eval(parse(text=paste0("data_quest$", attr(data_quest[ii],'name')))))
     if (length(cur_com) == 0) {
-      questionnaires_vars_names[ii] = NA
+      questionnaires_vars_names[names(data_quest)[ii]] = NA
       next 
     } else {
-      questionnaires_vars_names[ii] =comment(eval(parse(text=paste0("data_quest$", attr(data_quest[ii],'name')))))
+      questionnaires_vars_names[names(data_quest)[ii]] =comment(eval(parse(text=paste0("data_quest$", attr(data_quest[ii],'name')))))
     }
   }
   
@@ -1208,4 +1208,3 @@ if (data_release == 'behav' | data_release == 'MRI') {
 # cur_dat_match = dat_match[desired_vars]
 # cur_dat=merge(cur_dat,cur_dat_match,by.x="ID",by.y="VPPG",all.x = T,all.y = F)
 # xlsx::write.xlsx(cur_dat,file="VPPG_01_all_behav_AG_ed_2016_11_25.xlsx")
-

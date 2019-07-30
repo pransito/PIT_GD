@@ -4,17 +4,12 @@
 # run data_import.R before or load the .RData file (foreign run)
 # will output data_pdt, dat_match to be used for further analysis
 
-# set to T, if you have this script from GitHub
-FOREIGN_RUN = T
-
 # PREPARATION FOR FOREIGN RUN =================================================
-if (FOREIGN_RUN) {
-  # root_wd needs to be the folder which holds the "PIT_GD_behav/R/analyses/"
-  rm(list=ls())
-  root_wd  = paste0(dirname(rstudioapi::getSourceEditorContext()$path),'/analyses/')
-  setwd(root_wd)
-  load('.RData')
-}
+# root_wd needs to be the folder which holds the "PIT_GD_behav/R/analyses/"
+rm(list=ls())
+root_wd  = paste0(dirname(rstudioapi::getSourceEditorContext()$path),'/analyses/')
+setwd(root_wd)
+load('.RData')
 
 # get the paths
 res      = agk.get.working.location()
@@ -26,10 +21,10 @@ data_pdt     = data_pdt_bcp
 data_pdt_inv = data_pdt
 
 ## PARAMETER SETTINGS =========================================================
-# which study to look at (Cohorts)? ===========================================
-which_study = "MRI"
+# which study to look at (Cohorts)?
+#which_study = "MRI"
 #which_study = "MRI_and_POSTPILOT" # lumping those together (for KFG prediction e.g.)
-#which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
+which_study = "POSTPILOT_HCPG" # CAREFUL: had different set of neutral pictures (?!?!)
 #which_study = "TEST" # when K.Brehm used POSTPILOT and simulated facial expression (8888) or not (7777)
 #which_study = "Prestudy" # HC groups before core behav study; for image adequacy (PhysioPilot)
 #which_study = "sanity"
@@ -153,9 +148,6 @@ if ((length(grep(which_study, pattern = "HC")) != 0) & (length(grep(which_study,
 } else if ((length(grep(which_study, pattern = "PG")) != 0) & (length(grep(which_study, pattern = "HC")) == 0)) {
   data_pdt = subset(data_pdt,HCPG == "PG")
 }
-
-## REPORT on MISSINGS =========================================================
-
 
 ## DATA_INV ===================================================================
 # prepare a data_pdt_inv df

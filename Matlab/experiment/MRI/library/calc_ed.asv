@@ -1,0 +1,7 @@
+function [ed] = calc_ed(gain, loss, X, Q1, Q2)
+
+P      = [gain; loss; 0];
+nenner = cross(Q2-Q1,P-Q1);
+
+
+end

@@ -1,0 +1,73 @@
+% MAKE RANDPERM
+
+% makes a randperm by TOTE; makes a randperm then tests how even the
+% randperm is if split into 4 parts according to several paramters (ev,
+% var, ed, gain, loss); if not even, then new randperm
+
+%paramters
+P.gmat.alpha_1 = 0.08;
+P.gmat.alpha_2 = 0.2 ;
+
+
+% make a cond vector
+P.gmat.cond_vector = [];
+for ii=1:P.gmat.n_cond
+    P.gmat.cond_vector = [P.gmat.cond_vector;repmat(ii,length(P.gmat.combs)/4,1)];
+end
+
+% make a randperm
+% calculate the interesting paramters and test whether good randperm
+% supervisor == 0 means NOTOKAY
+while 1
+    % make the randperm for this subject
+    P.gmat.randp   = randperm(144);
+    
+    % EV
+    for ii = 1:length(P.gmat.randp)
+        P.gmat.ev(ii) = P.gmat.combs(1,P.gmat.randp(ii))*0.5 + P.gmat.combs(2,P.gmat.randp(ii))*0.5;
+    end
+    if test_randperm(P.gmat.ev, P.gmat.cond_vector, P.gmat.alpha_1, P.gmat.alpha_2) == 0
+        continue
+    end
+    
+    % VAR
+    for ii = 1:length(P.gmat.randp)
+        P.gmat.var(ii) = (P.gmat.combs(1,P.gmat.randp(ii))*0.5 - P.gmat.combs(2,P.gmat.randp(ii))*0.5)^2;
+    end
+    if test_randperm(P.gmat.var, P.gmat.cond_vector, P.gmat.alpha_1, P.gmat.alpha_2) == 0
+        continue
+    end
+    
+    % RATIO
+    for ii = 1:length(P.gmat.randp)
+        P.gmat.rat(ii) = P.gmat.combs(1,P.gmat.randp(ii))/P.gmat.combs(2,P.gmat.randp(ii));
+    end
+    if test_randperm(P.gmat.rat, P.gmat.cond_vector, P.gmat.alpha_1, P.gmat.alpha_2) == 0
+        continue
+    end
+    
+    % ED & abs(ed)
+    P.gmat.Q1 = [min(str2num((str2mat(P.gain.strings)))); max(str2num((str2mat(P.loss.strings)))); 0];
+    P.gmat.Q2 = [max(str2num((str2mat(P.gain.strings)))); min(str2num((str2mat(P.loss.strings)))); 0];
+    for ii = 1:length(P.gmat.randp)
+        P.gmat.ed(ii) = calc_ed(P.gmat.combs(1,P.gmat.randp(ii)),P.gmat.combs(2,P.gmat.randp(ii)), P.gmat.Q1, P.gmat.Q2);
+    end
+    P.gmat.ed_abs = abs(P.gmat.ed);
+    if test_randperm(P.gmat.ed, P.gmat.cond_vector, P.gmat.alpha_1, P.gmat.alpha_2) == 0
+        continue
+    end
+    if test_randperm(P.gmat.ed_abs, P.gmat.cond_vector, P.gmat.alpha_1, P.gmat.alpha_2) == 0
+        continue
+    end
+    
+    % GAIN & LOSS
+    tmp_gain = (str2num((str2mat(P.gain.strings))))';
+    tmp_loss = (str2num((str2mat(P.loss.strings))))';
+    if test_randperm(tmp_gain, P.gmat.cond_vector, P.gmat.alpha_1, P.gmat.alpha_2) == 0
+        continue
+    end
+    if test_randperm(tmp_loss, P.gmat.cond_vector, P.gmat.alpha_1, P.gmat.alpha_2) == 0
+        continue
+    end
+end
+

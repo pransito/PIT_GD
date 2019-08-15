@@ -1,0 +1,17 @@
+function [vec] = jitter(jmin,jmax,n)
+tmp   = [];
+count = 0;
+% first while loop just measures how many steps from min to max we can take
+while length(tmp) == n
+    count = count + 1;
+    tmp = [tmp;repmat(jmin,ceil(n/2^count),1)];     
+end
+
+values = linspace(jmin,jmax,count);
+count  = 0;
+for ii = 1:length(values)
+    tmp = [tmp;repmat(jmin,ceil(n/2^count),1)];
+    count = count + 1;
+    tmp = [tmp;repmat(jmin,ceil(n/2^count),1)];
+    
+end

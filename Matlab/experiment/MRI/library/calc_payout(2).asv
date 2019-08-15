@@ -1,0 +1,48 @@
+% calculates the payout based on the gambles
+
+function P  = calc_payout(P)
+% gambles which were not chosen
+gam_yes = [P.cur.gamble(P.cur.choice == 1), P.cur.gamble(P.cur.choice == 2)];
+% gambles which were not chosen
+gam_not = [P.cur.gamble(P.cur.choice == 3), P.cur.gamble(P.cur.choice == 4), P.cur.gamble(P.cur.choice == 5)];
+
+% first check whether there are at least P.min_gam gambles chosen
+if P.min_gam > length(gam_yes)
+    diskr = P.min_gam - (length(gam_yes));
+    % which gambles from which to fill up?
+    fill_up = RandSample(gam_not,[diskr,1]);    
+    % new all_gam
+    all_gam = [fill_up; gam_yes'; gam_not'];
+else
+    all_gam = [gam_yes'; gam_not'];
+end
+%random sample of size P.sam
+cur.ran = RandSample(1:length(all_gam),[P.sam,1]);
+ran_gam = all_gam(cur.ran);
+
+% play the gambles
+allpay = 0;
+for ll=1:length(ran_gam)
+    % gambles will only be played when choice is 1 or 2
+    if P.cur.choice(cur.ran(ll)) == 1 | P.cur.choice(cur.ran(ll)) == 2
+        cur.gam = ran_gam{ll};
+        % throw coin
+        cur.res = randperm(2);
+        if cur.res(1) ==1
+            cur.pay = str2double(P.gain.strings(cur.gam(cur.res(1))));
+        else
+            cur.pay = str2double(P.loss.strings(cur.gam(cur.res(1))));
+        end
+        
+        allpay(ll) = cur.pay;
+    end
+end
+P.final_payout = sum(allpay) + P.wager;
+disp(allpay)
+if P.final_payout > 34
+    P.final_payout = 29;
+elseif P.final_payout < 0
+    P.final_payout = 0;
+end
+
+end

@@ -1,4 +1,4 @@
-# PIT_GD
+# PIT_GD: Pavlovian-to-instrumental transfer in gambling disorder
 Scripts related to my PhD project "PIT in Gambling Disorder"
 
 Holds scripts for my main PhD project regardless of programming language. Used to be called "PDT".
